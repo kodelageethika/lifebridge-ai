@@ -1,0 +1,922 @@
+==============================================================================
+LIFEBRIDGE AI - FINAL MASTER PROMPT PACK (VERSION 2)
+Organ-Aware, Explainable, Human-Supervised Transplant Coordination Platform
+B.Tech Final-Year DTPI Project
+Primary target: Google AI Studio (Build mode). Also usable in Claude Code,
+Cursor or similar agentic tools.
+==============================================================================
+
+CONTENTS
+  How to use this pack
+  PART A  Master prompt (architecture, features, data, design, responsive)
+  PART B  Security and privacy hardening
+  PART C  Phase prompts (paste one at a time)
+  PART D  Final audit prompt
+  PART E  Viva and report notes
+
+HOW TO USE THIS PACK
+--------------------
+1. Paste PART A as the first prompt and let the tool build the foundation.
+2. Paste PART B immediately after. It applies to everything built.
+3. Paste the PART C phases one by one. Do not paste everything at once for
+   a project this size; staged builds are more reliable.
+4. Finish with PART D and read the audit report yourself.
+5. If the tool cannot do something (for example a Node server), it must use
+   the stated fallback and write the limitation in the README.
+
+HONEST EXPECTATIONS
+-------------------
+- No prompt guarantees a flawless or fully secure result. AI-generated code
+  needs human review. Parts B and D exist to force explicit verification.
+- All data is synthetic. This is an academic prototype. It is not approved,
+  validated or certified for real clinical, legal or regulatory use.
+- Never paste real API keys or real personal data into any prompt.
+
+
+##############################################################################
+PART A - MASTER PROMPT
+##############################################################################
+
+ROLE
+Act as a senior full-stack software architect, healthcare-technology
+specialist, UI/UX designer, database architect, AI/ML engineer, QA engineer
+and application security engineer. Build a complete, working, secure,
+responsive web application named LifeBridge AI. Do not stop to ask
+questions: make sensible assumptions, list them in the README
+"Assumptions" section, and continue. Never claim a feature is complete until
+it works and has been tested.
+
+------------------------------------------------------------------------------
+A1. PROJECT DEFINITION
+------------------------------------------------------------------------------
+Name: LifeBridge AI
+Tagline: Connecting Lives Through Intelligent Organ Donation.
+One-line description: an organ-aware, explainable and human-supervised
+transplant coordination platform that combines configurable organ-specific
+decision support with logistics monitoring, fairness analysis and verifiable
+auditability, without replacing authorized clinical or allocation decisions.
+
+Lifecycle supported: donor registration > organ-specific consent > medical
+and document verification > recipient registration per organ > organ
+availability > data-quality check > AI-assisted eligibility and ranking >
+explainable recommendations > human-reviewed allocation > transport and
+preservation monitoring > chain of custody > emergency escalation >
+transplant completion > post-transplant recovery > fairness and audit
+reporting.
+
+Primary users to optimize first: (1) Transplant Coordinator, the central
+operational user; (2) Doctor / transplant surgeon, the clinical decision-
+maker; (3) Hospital administrator, who manages hospital operations and staff.
+Donors and recipients are public-facing users; platform administrators
+oversee the system.
+
+LifeBridge AI does not replace India's official organ-allocation
+authorities (NOTTO, ROTTO, SOTTO and hospital protocols). It is a decision-
+support and coordination platform. Allocation and clinical decisions remain
+under authorized human and regulatory control.
+
+------------------------------------------------------------------------------
+A2. NON-NEGOTIABLE PRINCIPLES
+------------------------------------------------------------------------------
+1. AI is decision support only. It never allocates an organ, approves a
+   transfer, or makes a medical decision. Every allocation requires human
+   review and an authorized decision recorded with identity, time, reason
+   and model/config version.
+2. All patient, donor, hospital and document data is SYNTHETIC and fictional.
+   Show a persistent banner: "Demonstration system - synthetic data only.
+   Not for real clinical use."
+3. Do not invent medically valid compatibility rules, allocation weights,
+   preservation limits, survival estimates or expected-benefit numbers. All
+   project rules, weights and preservation windows are ILLUSTRATIVE demo
+   values stored in versioned configuration, labelled "illustrative demo
+   configuration, not an official clinical rule" wherever shown.
+4. Never present an AI recommendation as a guaranteed match. Never imply a
+   countdown determines clinical viability. Always show: "Clinical viability
+   must be assessed by authorized clinicians."
+5. Mandatory eligibility is separate from ranking. A candidate who fails an
+   eligibility rule never becomes eligible because of a high score.
+6. Missing data is never silently scored as zero. It is flagged for
+   authorized review and shown as "missing / unverified".
+7. No cross-organ ranking. Candidates are only compared within the same
+   organ type.
+8. No fake buttons, decorative controls or hardcoded success messages. Every
+   control runs real logic and shows real results or real errors.
+9. No claim of legal or regulatory certification (organ transplant law,
+   NOTTO, data protection). Design with them in mind and document gaps.
+10. Do not use protected or sensitive characteristics as ranking bonuses or
+    penalties. Do not claim a statistical disparity proves discrimination,
+    or that equal rates guarantee fairness.
+11. Security and privacy rules in PART B apply from the first file onward.
+
+------------------------------------------------------------------------------
+A3. ARCHITECTURE: MODULAR MONOLITH
+------------------------------------------------------------------------------
+Build ONE backend application with clearly separated modules (not separate
+microservices). Modules can later become independent services.
+
+  Presentation layer
+    Responsive PWA, six role-based dashboards, notifications
+  Security and API layer
+    Authentication, permission-based authorization with record-level
+    ownership/scope checks, validation, rate limiting, audit middleware
+  Modules
+    1. Organ-wise matching     (eligibility + explainable ranking)
+    2. Approval workflow       (state machine + human decisions)
+    3. Logistics engine        (event-driven preservation, custody, alerts)
+    4. Fairness and audit      (monitoring + integrity verification)
+    5. Consent management      (organ-specific lifecycle)
+    6. Recovery management     (post-transplant follow-up)
+    plus cross-cutting: Data-quality gate, Hospital readiness and capability,
+    Notification service, Document storage
+  Organ configuration layer
+    Versioned, immutable organ profiles: eligibility rulesets, ranking
+    factors, preservation profiles, warning thresholds, follow-up templates
+  Data and infrastructure layer
+    Relational database (via Prisma), secure document storage, event
+    records, hash-chained audit log
+
+Technology (adapted for AI Studio; state what you used in the README):
+  Frontend: React + TypeScript + Vite, Tailwind CSS, React Router, TanStack
+    Query, React Hook Form + Zod, Recharts, Framer Motion, Lucide React.
+    Installable PWA (service worker must never cache authenticated API
+    responses or sensitive pages).
+  Backend: Node.js + Express + TypeScript, REST under /api/v1, Prisma ORM,
+    Zod validation, Socket.IO or Server-Sent Events for real-time alerts,
+    a scheduler for threshold checks.
+  Database: Prisma schema written to be PostgreSQL-compatible. In AI Studio
+    use SQLite for the demo; document the one-line switch to PostgreSQL.
+  Fallback: if a custom Node server is not supported, use Firebase Auth +
+    Firestore with strict security rules and server-side privileged logic,
+    and document which guarantees (transactions, hash chain) were adapted.
+  AI/decision engine: TypeScript module with deterministic, explainable
+    eligibility filters and transparent additive ranking. Optional: Gemini
+    API used ONLY to rephrase an explanation already computed by the engine,
+    server-side only. Gemini never decides eligibility, ranking, approval or
+    data changes.
+  Optional interpretable ML (advisory only): one small, interpretable model
+    (for example logistic regression with coefficients stored in JSON) on
+    synthetic data for a NON-decisional output such as transport-delay risk.
+    Show its metrics and limitations honestly and label it advisory.
+  Testing: Vitest + React Testing Library, backend/API tests, Playwright
+    where available (otherwise document how to run it locally).
+
+------------------------------------------------------------------------------
+A4. ORGAN-WISE DESIGN
+------------------------------------------------------------------------------
+Supported organ types: kidney, liver, heart, lung, pancreas, intestine.
+Implementation priority: kidney and liver fully; heart as an additional
+config-driven organ (its short preservation window makes escalation visible);
+the remaining organs as configuration-only profiles.
+
+Organ-specific areas: consent, eligibility rules, urgency measure,
+preservation window, transport and escalation thresholds, waiting list,
+hospital capability, specialist team, recovery follow-up, fairness reports.
+Living vs deceased donation has a different verification path for kidney and
+partial liver; model it as a donation type with its own required documents.
+
+Organ-aware data rules (normalized, no blind duplication):
+- OrganTypes table is the single source of organ categories.
+- A person, hospital or doctor can relate to several organ types through
+  junction tables. Never copy an entire person or hospital record per organ.
+- Use foreign keys (organ_type_id, organ_id, recipient_organ_registration_id)
+  where appropriate. Derive organ type through organ_id for transport and
+  custody records instead of duplicating the field.
+- A waiting list is a filtered view of ACTIVE RecipientOrganRegistrations for
+  one organ type, not a separately maintained copy of state.
+
+Organ configuration (versioned, immutable once published; a change creates a
+new version). Example shape:
+{
+  "organType": "kidney",
+  "configVersion": "1.0.0",
+  "environment": "synthetic_demo",
+  "eligibilityRules": { "enabled": true, "ruleset": "kidney-demo-v1" },
+  "rankingFactors": ["compatibility_demo","urgency_demo",
+                     "waiting_time_demo","transport_feasibility_demo"],
+  "weights": { "...": "editable only by Admin via a new version" },
+  "logistics": { "preservationProfile": "demo_kidney_profile",
+                 "warningThresholdProfile": "demo_warning_profile" },
+  "followUpTemplate": "kidney-demo-followup-v1",
+  "requiresHumanApproval": true
+}
+Illustrative preservation windows for demo only (configurable, labelled
+non-clinical): heart about 4-6h, lung 4-8h, intestine 6-10h, liver 8-12h,
+pancreas 12-18h, kidney 24-36h.
+
+Every recommendation permanently stores: organ type, config version,
+ruleset version, a config hash, a minimal input snapshot or a secure
+reference plus hash (avoid copying full medical data), recommendation
+timestamp, factor-by-factor explanation, and the reviewer's decision. When a
+config changes, historical recommendations are never rewritten; you must
+still be able to explain exactly why an earlier recommendation was made.
+
+------------------------------------------------------------------------------
+A5. DATA MODEL (NORMALIZED)
+------------------------------------------------------------------------------
+Identity and access: Users, Roles, Permissions, RolePermissions (permission-
+based authorization, not role names alone), StaffProfiles (doctor,
+coordinator, hospital staff), Sessions.
+Facilities: Hospitals, HospitalOrganCapabilities (hospital x organ type,
+with team availability and readiness status).
+People: Donors, Recipients, Documents (secure storage references,
+verification status, expiry).
+Organ and consent: OrganTypes, OrganConfigVersions, DonorOrganConsents
+(versioned, with verification and withdrawal history), RecipientOrgan
+Registrations (urgency measure, status, verification), Organs (individual
+organ records, donation type, retrieval data).
+Matching: MatchRuns, MatchRecommendations (config version, ruleset version,
+hashes, rank, factors, excluded reason, missing-data flags), DataQuality
+Issues.
+Workflow: WorkflowCases, WorkflowTransitions (previous state, new state,
+actor, timestamp, reason, supporting document), ApprovalDecisions
+(including overrides with mandatory reason), AllocationScenarios (what-if,
+always hypothetical).
+Logistics: TransportCases, LogisticsEvents (append-only), CustodyEvents,
+EscalationRules, EscalationAlerts.
+Outcomes: TransplantRecords, RecoveryPlans (organ-specific), RecoveryRecords
+(appointments, medications, lab records, patient-reported updates,
+clinician notes).
+Platform: Notifications, AuditEvents, AuditAnchors, FairnessReports,
+SecurityEvents.
+Include primary/foreign keys, indexes, timestamps, status enums, unique and
+check constraints, soft deletion where appropriate, and documented retention
+rules. Provide an ER diagram (Mermaid) in /docs.
+
+------------------------------------------------------------------------------
+A6. ROLES AND PERMISSIONS (SERVER-ENFORCED)
+------------------------------------------------------------------------------
+Roles: Donor, Recipient, Hospital (staff and administrator), Transplant
+Coordinator, Medical Professional (doctor/surgeon), Platform Administrator.
+Use fine-grained permissions (for example organ.register, match.run,
+recommendation.review, decision.medical_approve, custody.confirm,
+audit.view, config.publish) mapped to roles. A coordinator never inherits
+a medical approval permission.
+
+Donor: register; profile; organ-specific consent (give, change, withdraw);
+  view status, notifications and own history. Own data only.
+Recipient: register; per-organ registration; upload synthetic documents;
+  track verification; view authorized waiting-list status and workflow
+  progress; recovery information. Own data only.
+Hospital staff/admin: manage hospital profile, staff, organ capabilities
+  and readiness; register donor and recipient records for the hospital;
+  verify documents; manage organ inventory; coordinate transport; confirm
+  handovers. Scoped to own hospital.
+Transplant Coordinator: review AI candidate lists and data-quality flags;
+  verify workflow completeness; coordinate hospitals and transport;
+  escalation; record decisions and reasons; track organs.
+Medical Professional: review clinical records for assigned cases; evaluate
+  compatibility; review AI explanations; approve, reject or request more
+  verification; document decisions; monitor recovery.
+Platform Administrator: users, permissions, hospitals, organ-config
+  versions, audit, fairness, reports, system health. Cannot edit or delete
+  audit records or past clinical decisions.
+Provide the permission matrix in code and in /docs.
+
+------------------------------------------------------------------------------
+A7. THE FEATURES AS INTEGRATED MODULES
+------------------------------------------------------------------------------
+F1 EXPLAINABLE MATCHING (organ-wise). Pipeline per organ:
+   1) Data-quality gate (see F11). 2) Retrieve candidates from active
+   registrations of that organ type only. 3) Apply mandatory eligibility
+   ruleset (blood-group compatibility, size/age bands, hospital capability
+   and readiness, preservation feasibility, verified consent and documents,
+   as configured). 4) Rank ONLY eligible candidates with transparent
+   additive factors from the organ config. 5) Output per candidate:
+   factor contributions, eligibility checklist, missing/unverified items,
+   excluded candidates with reasons, config and ruleset versions, timestamp.
+   Show a detailed explanation view for medical reviewers. Keep illustrative
+   weights editable only through new config versions.
+   This is the most visually distinctive screen in the app.
+
+F2 HUMAN-IN-THE-LOOP APPROVAL AS A STATE MACHINE
+   States: ORGAN_REGISTERED > MATCHING_COMPLETED > COORDINATOR_REVIEW >
+   MEDICAL_REVIEW > AUTHORIZED_DECISION > TRANSPORT_APPROVED >
+   TRANSPLANT_COMPLETED, plus REJECTED, WITHDRAWN, CANCELLED, ESCALATED and
+   NEEDS_VERIFICATION with explicitly defined allowed transitions. The
+   server rejects any undefined transition. Every transition stores actor,
+   timestamp, previous state, new state, reason and supporting documents
+   where required. Overrides of AI ranking need a mandatory reason
+   (minimum length). Separation of duties: whoever creates or runs a
+   recommendation cannot give the final medical approval; coordinator and
+   medical review must be different users. AI never moves a case forward.
+
+F3 EVENT-DRIVEN LOGISTICS AND PRESERVATION MONITORING
+   State is derived from an append-only LogisticsEvents stream: retrieval
+   completed, preservation started, transport assigned, vehicle departed,
+   route delay detected, custody handover completed, recipient hospital
+   readiness confirmed, organ received. A scheduled check evaluates
+   configured warning thresholds and raises alerts. Live elegant countdown
+   shows organ ID, retrieval time, elapsed time, estimated arrival,
+   preservation window (illustrative), transport risk, and current
+   custodian. Suggest operational alternatives only to authorized
+   coordinators. A countdown never declares an organ viable or non-viable.
+
+F4 COUNTERFACTUAL WHAT-IF SIMULATOR
+   Compare hypothetical scenarios (Candidate A vs B) on eligibility, urgency,
+   waiting time, transport duration, preservation considerations, fairness
+   indicators and operational constraints, using comparison cards, charts,
+   scenario timelines and factor-change explanations. Label everything
+   "Hypothetical". A simulation can never become an allocation. Omit
+   expected benefit or survival entirely (no validated model exists) and
+   state why.
+
+F5 FAIRNESS AND BIAS MONITORING
+   Aggregate metrics, per organ type: waiting-time distribution,
+   recommendation distribution, offer acceptance, regional and hospital
+   differences, outcomes, performance across relevant subgroups. Detect
+   potential statistical disparities with stated method, sample size and
+   limits; compare config versions; flag insufficient data; suppress groups
+   below a minimum size; export CSV/PDF reports. State limitations on the
+   page.
+
+F6 CONSENT LIFECYCLE AND PRIVACY CONTROL CENTER
+   Organ-specific preferences, document submission, status, timestamp,
+   version, authorized verification, modification, withdrawal, complete
+   history. Consent is never permanent merely because a user registered.
+   Withdrawal immediately excludes the donor/organ from new matching runs.
+
+F7 TAMPER-EVIDENT AUDIT TRAIL (see A8).
+
+F8 ORGAN CHAIN OF CUSTODY
+   Timeline: donor hospital > authorized retrieval team > transport team >
+   recipient hospital > authorized surgical team. At each handover record
+   organ ID, previous and new custodian, timestamp, location, preservation/
+   temperature data if available, condition assessment, confirming identity
+   and notes. Confirm handover, view history, detect missing handovers,
+   flag unexpected delays, generate custody reports. Clear vertical timeline.
+
+F9 EMERGENCY ESCALATION AND ALTERNATE-CANDIDATE REVIEW
+   Rule-driven triggers: recipient hospital unavailable, confirmation
+   timeout, transport delay, missing handover, preservation threshold
+   warning, candidate withdrawal or ineligibility. Detect > alert > notify
+   authorized coordinators > re-evaluate feasibility > request review of
+   alternate eligible candidates > record every action. Configurable levels.
+   Never silently replace a recipient or change allocation order; changes
+   follow the normal approval path.
+
+F10 POST-TRANSPLANT RECOVERY TRACKER ("digital twin")
+   Organ-specific RecoveryPlans: appointments, medication schedules, lab
+   report records, recovery indicators, clinician notes, missed
+   appointments, patient-reported updates. Timeline, reminders, doctor
+   dashboard, trend charts, missed-follow-up alerts, patient education. Any
+   AI-generated warning is labelled decision support and reviewed by an
+   authorized professional. No diagnoses, no prescribing.
+
+F11 DATA-QUALITY AND MISSING-INFORMATION GATE (before every matching run)
+   Check: missing mandatory medical information, expired or unverified
+   documents, inconsistent timestamps, invalid organ registration,
+   unverified consent, incomplete hospital information. Create
+   DataQualityIssues, block or flag affected candidates, and route them to
+   authorized review. Never convert missing data to a zero score.
+
+F12 HOSPITAL READINESS AND CAPABILITY MANAGEMENT
+   Per hospital and organ type: transplant capability, authorized team
+   availability, facilities and readiness status with timestamps. Matching
+   and transport recommendations only consider hospitals that are capable
+   and ready; stale readiness data is flagged.
+
+------------------------------------------------------------------------------
+A8. AUDIT TRAIL SPECIFICATION
+------------------------------------------------------------------------------
+- Append-only AuditEvents: event type, actor, record reference (not
+  sensitive content), timestamp, previous hash, current hash.
+- Canonical JSON serialization (sorted keys, fixed formatting) before
+  hashing with SHA-256.
+- Serialize appends (database transaction with row lock or sequence number)
+  so concurrent writes cannot fork the chain.
+- Keyed integrity: compute an HMAC over each event using a secret key kept
+  OUTSIDE the database (environment secret), so recomputing the chain
+  requires the key.
+- Anchor the latest chain head hash periodically in AuditAnchors and export
+  it somewhere an attacker with database access cannot rewrite (for example
+  a downloadable signed anchor file shown to the Admin and an off-database
+  copy). State clearly: hashing alone does not make storage tamper-proof;
+  anchoring and restricted permissions reduce the risk.
+- Restricted database permissions: the application account cannot UPDATE or
+  DELETE audit rows (use database triggers or privileges; if SQLite,
+  enforce with triggers and document the limitation).
+- Stretch goal: digital signatures or authenticated provenance for key
+  decisions (approval, override, handover).
+- Events to record: authentication, medical record access, donor/recipient
+  updates, consent events, recommendation creation (with versions),
+  approvals, overrides, state transitions, handovers, escalations,
+  transplant completion, configuration publishing, role changes.
+- Provide event history, verification status and an "Verify audit
+  integrity" function that recomputes the chain and pinpoints the first
+  broken link. Run it on demand and on a schedule; alert Admin on failure.
+- Never store sensitive clinical data in the chain.
+- No blockchain.
+
+------------------------------------------------------------------------------
+A9. VISUAL DESIGN SYSTEM (APPLE-INSPIRED HEALTHCARE)
+------------------------------------------------------------------------------
+Feeling: humanity, trust, life, medical precision, intelligence,
+transparency. Sophisticated, minimal, premium. Avoid generic hospital
+dashboards, bright blue healthcare templates, heavy gradients, oversized
+decorative cards and clutter. No cartoonish medical art; use elegant
+anatomical line illustrations (SVG) and subtle biological-network visuals.
+Brand concept: a continuous organic line connecting two lives, an
+anatomical heart, and a subtle intelligent network. Create an SVG logo.
+
+Colors (CSS variables + Tailwind tokens):
+  Porcelain #F8F7F2 (background) | Deep Life Green #183E35 (primary)
+  Living Sage #A9BBA8 (secondary) | Champagne Gold #D9C6A0 (accent)
+  Urgent Burgundy #B65F60 | Charcoal #202A27 (text) | White #FFFFFF
+  Add harmonious semantic success/warning/info tones, per-organ tag tints
+  (never color-only: pair with icon and label), and a complete dark theme.
+Typography: Manrope (headings), Inter (body/UI), JetBrains Mono (IDs,
+  timestamps, technical data). Fluid sizing with clamp().
+Shape and motion: generous whitespace, subtle borders, soft shadows,
+  16-22px card radii, consistent spacing scale, minimal line icons, subtle
+  micro-interactions, prefers-reduced-motion respected.
+Components: Button, Card, Input, Select, Checkbox, Switch, Slider, Modal/
+  BottomSheet, Drawer, Table/CardList, Badge, Tabs, Stepper, Timeline,
+  Toast, Skeleton, EmptyState, ErrorState, StatCard, Countdown,
+  FactorBar, ChartWrapper, OrganTag, RoleBadge. Every view has loading,
+  empty, error, success and disabled states. WCAG AA contrast, visible
+  focus, keyboard navigation, ARIA labels, 44px minimum touch targets.
+AI Matching screen: organ summary header with illustrative preservation
+  timer, ranked candidate cards, animated factor-contribution bars,
+  eligibility checklist, missing-information flags, excluded list with
+  reasons, config/ruleset version, timestamp, permanent "Advisory only"
+  notice, and a link to the what-if simulator.
+
+PREMIUM BACKGROUND (one global <AppBackground /> component)
+Fixed behind content (inset 0, z-index -1, pointer-events none, overflow
+hidden). Layers: porcelain/sage/gold radial gradients at very low opacity;
+faint dot or grid pattern with a radial mask fade; one or two slow ambient
+blobs animated with transform/opacity only; optional tiny inline SVG noise;
+glass surfaces with solid fallback (@supports not backdrop-filter). Dark
+mode variant with subtle glow. Fewer, smaller blobs and lighter pattern on
+mobile; animation disabled under prefers-reduced-motion and paused when the
+tab is hidden. No large raster images; any asset is optimized SVG/WebP.
+Fluid sizing only: clamp(), vw/vh, svh/dvh (never plain 100vh on mobile),
+min()/max(). Ultra-wide: content in a centered max-width container
+(about 1440-1600px) with decorative shapes anchored to the container and
+capped sizes so nothing stretches. Support safe-area insets.
+
+------------------------------------------------------------------------------
+A10. RESPONSIVE REQUIREMENTS (MOBILE AND LAPTOP, EVERY RATIO)
+------------------------------------------------------------------------------
+Mobile-first; redesign layouts per breakpoint instead of stretching a
+desktop dashboard. Support:
+  Mobile: 320, 360, 375, 390, 430 px; aspect ratios 9:16, 9:19.5, 9:20
+  Tablet: 768, 820, 1024 px; 3:4 and 4:3
+  Desktop: 1280, 1366, 1440, 1920 px; 3:2, 16:10, 16:9, 21:9 (2560+ ultra-
+  wide: centered container, no stretching)
+Rules: no horizontal overflow at any width; adaptive navigation (full
+sidebar on desktop, collapsed on tablet, bottom tab bar plus More drawer on
+mobile); responsive tables (stacked cards or scroll container with sticky
+first column); modals become bottom sheets (max-height 90dvh) on mobile;
+responsive charts (fewer ticks on mobile); single-column forms on mobile
+with 16px+ inputs and a sticky submit bar; touch-friendly controls; dvh/svh
+for full-height layouts; portrait and landscape; viewport meta
+width=device-width, initial-scale=1, viewport-fit=cover; fluid sizing with
+clamp(), grid, flex and container queries; overflow-wrap anywhere for IDs.
+
+------------------------------------------------------------------------------
+A11. PAGES AND DASHBOARDS
+------------------------------------------------------------------------------
+Public: Landing (elegant hero with anatomical heart SVG, lifecycle
+explanation, AI matching demo using synthetic data, feature showcase, human
+oversight section, privacy and trust section, CTA); About; How it works;
+Organ donation education; AI transparency and safety; Hospital network;
+Contact and support; Login; Registration.
+Dashboards:
+  Donor: profile completion, per-organ consent status, verification,
+    preferences, notifications.
+  Recipient: profile status, per-organ registrations, medical
+    verification, authorized waitlist status, workflow timeline,
+    notifications, recovery.
+  Hospital: organ inventory, capability and readiness, donor and recipient
+    records, recommendations for own cases, transport coordination,
+    pending approvals, staff.
+  Coordinator: active organ cases with organ filter/tabs, preservation
+    countdowns, data-quality flags, pending decisions, transport risks,
+    emergency alerts, alternate-candidate review.
+  Medical professional: review queue, detailed explanations, approvals and
+    overrides, recovery monitoring.
+  Platform administrator: users and permissions, hospitals, organ-config
+    versions, organ records, platform activity, audit integrity, fairness
+    metrics, security events, reports.
+Every module screen has an organ filter and OrganTag where relevant.
+
+------------------------------------------------------------------------------
+A12. API SURFACE (/api/v1)
+------------------------------------------------------------------------------
+auth, users, roles-permissions, hospitals (+ capabilities, readiness),
+donors, recipients, organ-types, organ-configs (versions), consents,
+registrations (recipient organ registrations), organs, data-quality,
+matching, recommendations, workflow (transitions), approvals, simulations,
+transport, logistics-events, custody, escalations, transplants, recovery,
+fairness, audit (+ verify, anchors), notifications, documents.
+Every route: schema validation, authentication, permission check, record-
+level ownership/scope check, pagination, filtering, search, consistent error
+format that never leaks internals, audit middleware, rate limiting, and
+documented in an API table (OpenAPI or README).
+
+------------------------------------------------------------------------------
+A13. SYNTHETIC DATA AND DEMO
+------------------------------------------------------------------------------
+Seed with a fixed random seed, idempotent, entirely fictional:
+- Fictional hospitals (about 20-30) with organ capabilities and readiness
+- Donors (about 300-500) and recipients (about 800-1,500) across organs,
+  with kidney and liver most populated and some heart records
+- Consent states: given, pending, withdrawn, expired
+- Documents: verified, unverified, expired
+- Organs with varied preservation states and transport scenarios
+- Recommendations with different outcomes, pending approvals, an emergency
+  case, completed transplants, and follow-up records
+- Edge cases: ineligible blood-group pairs, missing mandatory data,
+  inconsistent timestamps, near-expired preservation window, tied urgency,
+  withdrawn consent, unavailable hospital, stale readiness data
+- Synthetic data generator script with documented assumptions and a data
+  dictionary
+Demo accounts: one per role. Never hardcode shared passwords in source or
+commit them. Generate demo passwords at seed time from an environment
+variable or print them once in development only, and disable demo accounts
+in production mode.
+
+Scripted demo scenarios (must work end to end):
+  1. Full flow: register fictional donor > organ-specific consent > register
+     recipients per organ > verify synthetic eligibility > register an
+     organ > data-quality gate > run matching > view explanations >
+     coordinator review > medical review > authorized decision > start
+     preservation monitoring > record transport handovers > trigger an
+     emergency alert > complete simulated transplant > show recovery
+     tracking > verify the audit trail.
+  2. Doctor override with mandatory reason and audit entry.
+  3. Missing-data candidate flagged (not zero-scored) for review.
+  4. Heart with a tight illustrative window: delay triggers escalation and
+     an alternate-candidate review request; nothing is replaced silently.
+  5. Consent withdrawal removes the donor from a new matching run.
+  6. Audit tamper test: modify one event, verification fails at that link.
+  7. Config version change: an old recommendation remains explainable under
+     its original config version.
+
+------------------------------------------------------------------------------
+A14. DELIVERABLES AND EXECUTION RULES
+------------------------------------------------------------------------------
+Deliver: complete source; README (install, run, env variables, demo steps,
+assumptions, limitations); .env.example (placeholders only); ER diagram,
+architecture and sequence diagrams (Mermaid); permission matrix; API
+documentation; organ-config templates; data dictionary; test suite;
+SECURITY.md; project-report notes; viva notes.
+Rules: inspect any existing repo first; plan before coding; build small
+testable modules; define the schema and auth before dependent workflows;
+reusable components; connect every screen to real logic; run tests after
+each module and fix errors before moving on; document incomplete features
+honestly. If everything cannot fit in one pass, deliver a working vertical
+slice first (auth > organ registration > consent > data-quality gate >
+match > approval > audit) and continue module by module without breaking
+earlier work.
+
+
+##############################################################################
+PART B - SECURITY AND PRIVACY HARDENING (PASTE AFTER PART A)
+##############################################################################
+
+Act as an application security engineer. Apply and VERIFY every item below
+across the whole project. After each section, state what you changed and how
+you checked it. If an item cannot be done in this environment, say so and
+give the exact manual step. Do not pretend a check passed.
+
+B1. API KEYS AND SECRETS
+- No key, token, password, private key or connection string in source,
+  comments, README, tests, seed files, logs, error messages or the client
+  bundle. Search the whole project for patterns (AIza, sk-, key, secret,
+  token, password, BEGIN PRIVATE KEY, postgres://, mongodb://).
+- Gemini and any third-party keys are read only on the server from
+  environment variables (AI Studio Secrets or .env). Never use a VITE_
+  prefix or any variable bundled to the browser. Inspect the production
+  build output for key strings.
+- The browser calls OUR endpoint, which calls Gemini: authenticated, rate
+  limited, input-size limited, fixed prompt template, so it cannot be abused
+  as a free general proxy.
+- .env.example with placeholders only. .gitignore covers .env, .env.*, *.pem,
+  *.key, service-account JSON, uploads/, local database files, anchors with
+  secrets.
+
+B2. ENVIRONMENT VARIABLES
+- Validate all required variables at startup with Zod; fail fast with a clear
+  message that never prints values.
+- Separate development and production config. Production refuses to start if
+  secrets are missing, default, short or placeholder (JWT secret, HMAC audit
+  key, encryption key).
+- Document every variable (name, purpose, format, required/optional).
+
+B3. AUTHENTICATION
+- Argon2id (or bcrypt cost 12+) with unique salts. Never store plain text.
+- Password policy (min 12 chars, common-password check), lockout or
+  exponential delay after repeated failures, generic "Invalid credentials".
+- Short-lived access tokens (about 15 min) and rotating refresh tokens in
+  httpOnly, Secure, SameSite cookies, not localStorage. Logout invalidates
+  the session server-side. Idle and absolute expiry. Re-authentication for
+  sensitive actions (role change, consent withdrawal, approvals, config
+  publishing).
+- Optional TOTP MFA for Admin, Coordinator and Medical roles.
+- Single-use, expiring password-reset tokens.
+- Public registration creates only Donor or Recipient accounts. Staff,
+  coordinator, doctor and admin accounts are created or approved by an
+  Admin. Registration can never choose a privileged role.
+
+B4. AUTHORIZATION, ADMIN PROTECTION, OWN-DATA ACCESS
+- Deny by default. Every endpoint checks authentication, then permission,
+  then ownership or scope (own record, own hospital, assigned case).
+  Defend against IDOR: never trust an ID alone; verify the caller may access
+  that exact object.
+- Never trust client-supplied role, userId, hospitalId, isAdmin or status
+  fields; derive identity from the verified session. Use allow-lists for
+  updatable fields to prevent mass assignment.
+- Admin routes behind a separate guard, MFA where enabled, rate-limited,
+  logged and audited. The last Admin cannot be removed or demoted. Role
+  changes invalidate existing sessions.
+- Separation of duties enforced server-side (recommendation creator cannot
+  give final medical approval; coordinator and medical reviewer differ).
+- Automated NEGATIVE tests: a Donor cannot read another donor; a Recipient
+  cannot read clinical notes or other recipients; hospital staff cannot see
+  another hospital's cases; non-admins get 403 on admin routes; a
+  coordinator cannot perform a medical approval; tampered IDs, roles and
+  invalid state transitions are rejected; unauthenticated calls get 401.
+- Fallback with Firestore: never "allow read, write: if true"; per-collection
+  rules, role claims, field validation; no client writes to audit, approvals
+  or role fields; test with the emulator.
+
+B5. FORM SANITIZATION, VALIDATION, XSS, CSRF, UPLOADS
+- Validate every input on client and server with Zod (type, length, format,
+  enum, range); reject unknown fields; limit body size.
+- Never render user input as raw HTML. No dangerouslySetInnerHTML,
+  innerHTML, eval, new Function or document.write. If rich text is needed,
+  sanitize with DOMPurify using a strict allow-list.
+- Allow-list URLs (http/https only; no javascript: or data:). Prevent open
+  redirects.
+- File uploads: allow-list extensions and MIME types, verify magic bytes,
+  size limits, random server-generated filenames, store outside the web
+  root, never execute, serve through an authorized endpoint with
+  Content-Disposition and X-Content-Type-Options: nosniff, quarantine/scan
+  in production, strip image metadata.
+- ORM/parameterized queries only; no string-built queries; validate types to
+  block NoSQL operator injection.
+- CSRF protection for cookie-based sessions on all state-changing requests.
+
+B6. RATE LIMITING AND ABUSE CONTROL
+- Global limiter plus strict limiters on login, registration, password
+  reset, MFA, uploads, matching runs, report export and the Gemini proxy.
+  Return 429 with Retry-After. Key by IP and by user when authenticated.
+- Honeypot or CAPTCHA hook on public forms. Cap pagination size and query
+  complexity.
+
+B7. CORS, SECURITY HEADERS, DEBUG MODE
+- CORS allow-list of origins from environment variables; never "*" with
+  credentials; restrict methods and headers.
+- helmet or equivalent: Content-Security-Policy (no unsafe-inline or
+  unsafe-eval; nonces/hashes; restrict script, style, img, connect,
+  frame-ancestors), Strict-Transport-Security, X-Content-Type-Options:
+  nosniff, Referrer-Policy: strict-origin-when-cross-origin,
+  Permissions-Policy (disable camera, microphone, geolocation unless
+  needed), Cross-Origin-Opener-Policy, frame-ancestors 'none' or 'self'.
+  Remove X-Powered-By.
+- Debug off in production: no stack traces, verbose errors, SQL errors,
+  source maps, dev tools, test routes, API playgrounds, or seed/admin
+  utilities. Use a generic error handler that returns an error ID and logs
+  details server-side with redaction.
+- Cookies Secure, HttpOnly, SameSite=Lax/Strict. Force HTTPS in production.
+
+B8. DEPENDENCIES AND UNUSED PACKAGES
+- Run npm audit and report the results. Update vulnerable packages, keep a
+  lockfile, prefer maintained libraries, verify package names (typosquats).
+- Remove unused packages (depcheck/knip), dead code, unused routes, demo
+  endpoints and scaffolding; report what was removed. Add audit and depcheck
+  scripts.
+
+B9. EXPOSED FILES AND BUILD OUTPUT
+- Public web root contains only intended assets. Block access to .env, .git,
+  config, package files, logs, database files, backups, uploads, source maps
+  and dotfiles. No directory listing.
+- Disable production source maps. Verify the bundle has no secrets, demo
+  accounts, internal URLs or debug data.
+- robots.txt and sitemap reveal no sensitive paths. Add security.txt.
+
+B10. DATABASE SECURITY
+- Least-privilege database user; no default or shared credentials; database
+  not publicly reachable; TLS where supported.
+- Field-level encryption at rest for sensitive fields (contact details,
+  identifiers, medical notes) with a key from the environment/secret
+  manager; never log them.
+- Tracked migrations; synthetic, idempotent seeds; encrypted backups with a
+  documented, tested restore procedure; soft deletion and retention periods;
+  user data export and deletion flow.
+- Unique, foreign-key, NOT NULL and CHECK constraints. Audit tables
+  protected from UPDATE/DELETE by privileges or triggers.
+
+B11. SECRETS IN GIT HISTORY
+- Before any commit or push: verify .gitignore, run a secret scanner
+  (gitleaks or trufflehog) on the working tree AND full history, and add a
+  pre-commit hook that blocks secrets.
+- If any secret was ever committed, pasted into a prompt, chat or log, treat
+  it as compromised: rotate it FIRST, then remove it from history
+  (git filter-repo or BFG) and force-push. Deleting the file in a new commit
+  is not enough. Document the runbook in docs/SECURITY.md.
+
+B12. PRIVACY AND DATA PROTECTION
+- Data minimization and purpose limitation per field; plain-language
+  privacy notice; versioned, timestamped consent text.
+- Role-based field-level masking (hospital staff see partial identifiers;
+  coordinators see what the workflow needs; only assigned clinicians see
+  clinical detail).
+- No sensitive data in URLs, query strings, localStorage, analytics, error
+  messages, notifications, emails, audit payloads or logs.
+- Fairness reports use aggregates with minimum group-size thresholds.
+- User-rights flows: view own data, correct, export, request deletion or
+  withdrawal (subject to legal retention), and grievance contact.
+- Design with India's Digital Personal Data Protection Act 2023, the
+  Transplantation of Human Organs and Tissues Act 1994, NOTTO and
+  institutional protocols in mind; document the gaps; claim no compliance
+  or certification.
+
+B13. LOGGING AND MONITORING
+- Structured logs with request IDs, no secrets or PII. Security events
+  (failed logins, permission denials, rate-limit hits, role changes,
+  integrity failures) stored in SecurityEvents and surfaced to Admin.
+- Audit verification on demand and on a schedule with Admin alert on failure.
+- Timeouts and size limits on all outbound calls.
+
+B14. SECURITY TESTS TO WRITE AND RUN
+Authorization/IDOR per role; mass assignment (cannot set role, isAdmin,
+hospitalId, status); separation of duties; XSS payloads in every text field
+render inert; SQL/NoSQL injection payloads rejected; rate limits return 429;
+disallowed CORS origin gets no CORS headers; security headers present on
+HTML and API responses; upload tests (wrong type, oversized, double
+extension, polyglot); session tests (expiry, logout invalidation, token
+reuse after rotation); audit-chain tamper test; secret scan of repo and
+bundle; production-mode test (no stack traces, source maps or debug
+routes). Write docs/SECURITY.md with a threat-model summary, controls
+table, test results and remaining risks, stated honestly.
+
+
+##############################################################################
+PART C - PHASE PROMPTS (PASTE ONE AT A TIME AFTER PARTS A AND B)
+##############################################################################
+
+PHASE 1 - FOUNDATION, AUTH, HOSPITALS, DONORS, RECIPIENTS
+"Set up the project, design tokens (light and dark), AppBackground,
+responsive shell (sidebar, tablet collapse, mobile bottom nav), UI component
+library, environment validation, security headers, CORS, error handler, rate
+limiter and logging. Implement the normalized Prisma schema (identity,
+permissions, hospitals, donors, recipients, documents), secure authentication
+and sessions, permission-based and ownership-based authorization, seed data
+with a fixed seed, and the audit hash chain with HMAC and verification. Write
+and run negative authorization tests and the audit tamper test. Show the app
+at 320px and 1920px and report any overflow."
+
+PHASE 2 - ORGAN-WISE REGISTRATION AND CONSENT
+"Implement OrganTypes, versioned immutable OrganConfigVersions, hospital
+organ capabilities and readiness, DonorOrganConsents (versioned, verification,
+withdrawal), RecipientOrganRegistrations, document verification, organ
+records, and the donor, recipient and hospital dashboards with organ
+filters. Validate and sanitize every form on client and server. Test XSS
+payloads. Test that consent withdrawal excludes the donor from new matching."
+
+PHASE 3 - DATA-QUALITY GATE AND MATCHING (KIDNEY AND LIVER, HEART CONFIG)
+"Implement the data-quality gate, the organ-wise eligibility rulesets and
+transparent additive ranking driven by versioned organ configs for kidney and
+liver, and a config-only heart profile. Store config version, ruleset
+version, hashes, minimal input snapshot and explanation on every
+recommendation. Missing data is flagged, never zero-scored. Write tests for
+eligibility, ranking, ties, missing data, excluded reasons, no cross-organ
+ranking, and config-version change leaving old recommendations explainable."
+
+PHASE 4 - EXPLAINABLE UI AND APPROVAL WORKFLOW
+"Build the visually distinctive AI Matching screen (factor bars, eligibility
+checklist, excluded list, versions, advisory notice) and the approval state
+machine with coordinator review, medical review, authorized decision,
+rejection, withdrawal, cancellation, escalation, mandatory override reason
+and separation of duties. Reject undefined transitions. Test every allowed
+and disallowed transition and permission."
+
+PHASE 5 - EVENT-DRIVEN LOGISTICS, CUSTODY AND ESCALATION
+"Implement the append-only LogisticsEvents stream, derived transport state,
+the illustrative per-organ preservation countdown with the clinical-viability
+disclaimer, scheduled threshold checks, real-time alerts, chain-of-custody
+timeline with missing-handover detection, hospital readiness checks, and the
+rule-driven escalation engine with alternate-candidate review that never
+replaces a recipient silently. Test each trigger and the heart-delay
+scenario."
+
+PHASE 6 - AUDIT INTEGRITY AND FAIRNESS
+"Finish audit anchoring and export, scheduled verification with Admin alerts,
+the Admin audit viewer, and the fairness dashboard per organ type with
+aggregate metrics, stated methods and limitations, small-group suppression
+and downloadable reports. Add the security-events view."
+
+PHASE 7 - WHAT-IF SIMULATOR, RECOVERY AND OPTIONAL ADVISORY MODEL
+"Build the hypothetical what-if simulator, the organ-specific recovery
+module with reminders, trends and missed-follow-up alerts, and (optional) the
+interpretable advisory transport-delay model with honest metrics and
+limitations. Label all outputs hypothetical or advisory."
+
+PHASE 8 - REMAINING ORGAN CONFIGS, RESPONSIVE QA, DOCS
+"Add configuration-only profiles for lung, pancreas and intestine. Test every
+key page at 320x568, 360x800, 375x812, 390x844, 430x932, 768x1024, 820x1180,
+1024x768, 1280x800, 1366x768, 1440x900, 1920x1080, 2560x1080 (21:9) and
+2560x1440, in portrait and landscape, light and dark, 200% zoom and reduced
+motion. Assert no horizontal overflow, no overlap, tappable primary buttons
+and AA contrast; fix and re-test; report a page-by-viewport table. Then write
+README, .env.example, ER and architecture and sequence diagrams, permission
+matrix, API docs, organ-config templates, data dictionary, test report,
+SECURITY.md, and a 5-minute demo script covering all seven scenarios."
+
+
+##############################################################################
+PART D - FINAL AUDIT PROMPT (PASTE LAST)
+##############################################################################
+
+"Perform a pre-release audit as an independent reviewer. Produce a report
+with PASS / FAIL / NOT VERIFIED per item, with evidence (file, line, command
+output) and a fix for every FAIL:
+1. Secrets in source, build output, README, tests and git history; no
+   client-exposed secrets.
+2. Environment validation; production refuses weak config.
+3. Authentication: hashing, lockout, session expiry, cookie flags, logout
+   invalidation, MFA for privileged roles.
+4. Authorization: deny-by-default, IDOR and mass-assignment tests, admin and
+   last-admin protection, separation of duties, ownership checks everywhere.
+5. Input handling: validation everywhere, XSS payloads inert, safe uploads,
+   CSRF protection.
+6. Rate limiting on auth, upload, matching, export and Gemini proxy.
+7. CORS allow-list; CSP, HSTS, nosniff, referrer and permissions policies,
+   frame-ancestors.
+8. No debug output, stack traces, source maps or debug routes in production.
+9. npm audit results; outdated and unused packages removed.
+10. No sensitive file reachable from the web root; .gitignore correct.
+11. Database: least privilege, field encryption, backups and restore,
+    retention, audit tables protected from update/delete.
+12. Privacy: minimization, masking by role, no sensitive data in URLs, logs,
+    storage or audit payloads, data export and deletion, aggregate-only
+    fairness with small-group suppression.
+13. Audit chain: verification passes; tamper test fails at the right link;
+    HMAC key outside the database; anchors exported.
+14. AI safety: no auto-allocation anywhere; every recommendation labelled
+    advisory; overrides need reasons; missing data never zero-scored; no
+    cross-organ ranking; Gemini only rephrases computed explanations.
+15. Versioning: organ configs immutable; old recommendations still
+    explainable under their original versions.
+16. Workflow: state machine rejects undefined transitions; coordinator
+    cannot give medical approval.
+17. Logistics: countdown never declares viability; escalation never replaces
+    a recipient silently.
+18. Responsiveness: the Phase 8 page-by-viewport table.
+19. Functionality: all seven demo scenarios run end to end with no fake
+    buttons or hardcoded success messages.
+Then list remaining risks and what must happen before any real-world use
+(independent security testing, clinical validation, legal and regulatory
+review), and confirm no certification or compliance claims appear in the UI
+or docs."
+
+
+##############################################################################
+PART E - VIVA AND REPORT NOTES
+##############################################################################
+
+ONE-LINE POSITIONING
+"LifeBridge AI is an organ-aware, explainable and human-supervised transplant
+coordination platform. It combines configurable organ-specific decision
+support with logistics monitoring, fairness analysis and verifiable
+auditability, without replacing authorized clinical or allocation decisions."
+
+KEY DESIGN DECISIONS TO JUSTIFY
+- Modular monolith instead of microservices: simpler transactions, testing
+  and deployment; modules can be split later.
+- Normalized organ-aware schema with junction tables, not organ_type
+  copied everywhere.
+- Versioned immutable organ configs so past recommendations remain
+  explainable.
+- Eligibility separate from ranking; deterministic, explainable rules
+  rather than a black-box model.
+- State machine with separation of duties and permission-based access.
+- Event-driven logistics; the countdown never decides viability.
+- Hash-chained audit with canonical serialization, HMAC, anchoring and
+  restricted permissions, and an honest statement of its limits.
+- Synthetic data only; fairness metrics are aggregate with stated
+  limitations.
+
+LIKELY VIVA QUESTIONS
+1. Why is the AI only decision support?
+2. Why not just rank everyone with one score across organs?
+3. How do you stop a candidate failing eligibility from ranking high?
+4. How are organ rules changed without breaking history?
+5. Why a modular monolith?
+6. How does the hash chain work and what are its limits?
+7. How do you prevent a coordinator approving a medical decision?
+8. How is missing data handled and why?
+9. What does the countdown mean and what does it not mean?
+10. How is fairness measured and what can it not prove?
+11. How is consent withdrawal enforced?
+12. How do you protect one user's data from another (IDOR)?
+13. How are secrets, keys and dependencies handled?
+14. How is the UI responsive from 320px to ultra-wide screens?
+15. What are the limitations and what would clinical validation require?
+
+==============================================================================
+END OF PROMPT PACK
+==============================================================================

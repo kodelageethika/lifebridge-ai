@@ -1,0 +1,52 @@
+@import "tailwindcss";
+@custom-variant dark (&:where(.dark, .dark *));
+
+@theme {
+  --font-sans: 'Plus Jakarta Sans', system-ui, -apple-system, sans-serif;
+  --font-mono: 'JetBrains Mono', monospace;
+  
+  --color-warm-ivory: #F8F5EF;
+  --color-soft-blush: #F8E8E3;
+  --color-coral-primary: #E98F83;
+  --color-coral-hover: #D87B6F;
+  --color-deep-navy: #243B55;
+  --color-sage-green: #A9BBA8;
+  --color-charcoal: #252A2D;
+  --color-muted-grey: #788394;
+}
+
+:root {
+  color-scheme: light dark;
+}
+
+/* Subtle background grid pattern inspired by the reference poster */
+.bg-grid-poster {
+  background-size: 24px 24px;
+  background-image: 
+    linear-gradient(to right, rgba(224, 90, 90, 0.07) 1px, transparent 1px),
+    linear-gradient(to bottom, rgba(224, 90, 90, 0.07) 1px, transparent 1px);
+}
+
+.dark .bg-grid-poster {
+  background-size: 24px 24px;
+  background-image: 
+    linear-gradient(to right, rgba(255, 107, 107, 0.06) 1px, transparent 1px),
+    linear-gradient(to bottom, rgba(255, 107, 107, 0.06) 1px, transparent 1px);
+}
+
+/* Custom scrollbars */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+::-webkit-scrollbar-thumb {
+  background: rgba(224, 90, 90, 0.25);
+  border-radius: 9999px;
+}
+.dark ::-webkit-scrollbar-thumb {
+  background: rgba(255, 107, 107, 0.25);
+}
+

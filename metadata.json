@@ -1,0 +1,6 @@
+{
+  "name": "LifeBridge AI",
+  "description": "Organ-aware, explainable and human-supervised transplant coordination platform connecting lives through intelligent organ donation.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
