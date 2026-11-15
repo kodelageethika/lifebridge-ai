@@ -5,7 +5,7 @@ import {defineConfig} from 'vite';
 
 export default defineConfig(() => {
   return {
-     base: "/YOUR-REPOSITORY-NAME/",
+     base: "/lifebridge-ai/",
     plugins: [react(), tailwindcss()],
     resolve: {
       alias: {
