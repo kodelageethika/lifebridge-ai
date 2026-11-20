@@ -1,24 +1,43 @@
 import React, { useState } from 'react';
 import { useApp } from '../../context/AppContext.tsx';
 import { OrganType } from '../../types/index.ts';
-import { OrganTag } from '../common/OrganTag.tsx';
+import { apiRequest } from '../../services/api.ts';
+import { AiInsightPanel } from '../common/AiInsightPanel.tsx';
 import {
-  Scale,
   Users,
   Download,
   AlertCircle,
   Shield,
-  BarChart3,
   MapPin,
-  CheckCircle2
 } from 'lucide-react';
+
+interface AiFairnessInsightsResult {
+  organType: string;
+  overallAssessment: string;
+  equityHighlights: string[];
+  suppressedCohortNote: string;
+  recommendedMonitoringActions: string[];
+  disclaimer: string;
+  model: string;
+}
 
 export const FairnessMetricsView: React.FC = () => {
   const { fairnessMetrics } = useApp();
-
   const [selectedOrgan, setSelectedOrgan] = useState<OrganType>('kidney');
+  const [aiLoading, setAiLoading] = useState(false);
+  const [aiError, setAiError] = useState<string | null>(null);
+  const [aiInsights, setAiInsights] = useState<AiFairnessInsightsResult | null>(null);
 
-  const activeMetric = fairnessMetrics.find(f => f.organType === selectedOrgan) || fairnessMetrics[0];
+  const activeMetric =
+    fairnessMetrics.find(f => f.organType === selectedOrgan) || fairnessMetrics[0];
+
+  if (!activeMetric) {
+    return (
+      <div className="p-8 text-center bg-white dark:bg-[#152232] rounded-2xl border border-[#EFE7DE] dark:border-[#273A52] text-xs text-[#788394]">
+        Fairness cohort statistics loading...
+      </div>
+    );
+  }
 
   const handleExportCsv = () => {
     let csv = `LifeBridge AI Fairness & Demographic Parity Audit Report\nOrgan Type: ${activeMetric.organType.toUpperCase()}\n\n`;
@@ -42,7 +61,6 @@ export const FairnessMetricsView: React.FC = () => {
 
   return (
     <div className="space-y-6">
-      
       {/* Header */}
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 bg-white dark:bg-[#152232] p-5 rounded-2xl border border-[#EFE7DE] dark:border-[#273A52] shadow-xs">
         <div>
@@ -59,15 +77,17 @@ export const FairnessMetricsView: React.FC = () => {
           </p>
         </div>
 
-        {/* Organ Selector & Export */}
         <div className="flex items-center gap-2">
           <select
             value={selectedOrgan}
-            onChange={(e) => setSelectedOrgan(e.target.value as OrganType)}
+            onChange={e => setSelectedOrgan(e.target.value as OrganType)}
             className="text-xs font-semibold bg-[#FAF6F0] dark:bg-[#0E1722] border border-[#EFE7DE] dark:border-[#203247] rounded-xl px-3 py-1.5 text-[#243B55] dark:text-white capitalize outline-none"
           >
-            <option value="kidney">Kidney Audit</option>
-            <option value="liver">Liver Audit</option>
+            {(['kidney', 'liver', 'heart', 'lung', 'pancreas', 'intestine'] as OrganType[]).map(o => (
+              <option key={o} value={o}>
+                {o} Audit
+              </option>
+            ))}
           </select>
 
           <button
@@ -80,18 +100,18 @@ export const FairnessMetricsView: React.FC = () => {
         </div>
       </div>
 
-      {/* Fairness Principles & Limitation Statement */}
+      {/* Methodology */}
       <div className="p-4 bg-amber-50/70 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-800/60 rounded-xl text-xs text-amber-900 dark:text-amber-200 space-y-1.5 leading-relaxed">
         <div className="font-bold flex items-center gap-1.5 text-amber-800 dark:text-amber-300">
           <AlertCircle size={15} />
           <span>Methodology & Non-Discrimination Guardrails:</span>
         </div>
         <p>
-          Protected demographic attributes (gender, caste, religion, wealth, or geographic status) are NEVER included as ranking factors, bonuses, or penalties. Furthermore, statistical disparities do not automatically prove bias, nor do equal outcomes guarantee fairness; clinical compatibility must always govern. Subgroups with sample sizes below 20 are systematically suppressed to prevent re-identification risks.
+          Protected demographic attributes (gender, caste, religion, wealth, or geographic status) are NEVER included as ranking factors, bonuses, or penalties. Subgroups with sample sizes below 20 are systematically suppressed to prevent re-identification risks.
         </p>
       </div>
 
-      {/* High-Level Overview Metrics */}
+      {/* Overview Metrics */}
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
         <div className="bg-white dark:bg-[#152232] p-4 rounded-2xl border border-[#EFE7DE] dark:border-[#273A52] shadow-xs">
           <span className="text-xs text-[#788394] dark:text-[#94A3B8] block mb-1">Evaluated Cohort</span>
@@ -126,7 +146,7 @@ export const FairnessMetricsView: React.FC = () => {
         </div>
       </div>
 
-      {/* Demographic Subgroup Parity Table with Privacy Suppression */}
+      {/* Demographic Subgroup Parity Table */}
       <div className="bg-white dark:bg-[#152232] rounded-2xl border border-[#EFE7DE] dark:border-[#273A52] shadow-xs overflow-hidden">
         <div className="p-4 sm:p-5 border-b border-[#EFE7DE] dark:border-[#203247] flex items-center justify-between bg-[#FAF6F0] dark:bg-[#152232]">
           <div className="flex items-center gap-2">
@@ -155,9 +175,7 @@ export const FairnessMetricsView: React.FC = () => {
             <tbody className="divide-y divide-[#EFE7DE] dark:divide-[#203247]">
               {activeMetric.subgroups.map((sg, idx) => (
                 <tr key={idx} className="hover:bg-[#FDFBF7] dark:hover:bg-[#1A2636] transition-colors">
-                  <td className="py-3 px-4 font-semibold text-[#243B55] dark:text-white">
-                    {sg.groupName}
-                  </td>
+                  <td className="py-3 px-4 font-semibold text-[#243B55] dark:text-white">{sg.groupName}</td>
                   <td className="py-3 px-4 font-mono text-right tabular-nums">
                     {sg.isSuppressed ? (
                       <span className="text-[11px] font-semibold text-amber-700 dark:text-amber-400 bg-amber-50 dark:bg-amber-950/50 px-2 py-0.5 rounded">
@@ -170,9 +188,7 @@ export const FairnessMetricsView: React.FC = () => {
                   <td className="py-3 px-4 font-mono font-bold text-right tabular-nums text-[#E98F83] dark:text-[#FF8A8A]">
                     {sg.allocationPercent}%
                   </td>
-                  <td className="py-3 px-4 font-mono text-right tabular-nums">
-                    {sg.avgWaitlistDays} days
-                  </td>
+                  <td className="py-3 px-4 font-mono text-right tabular-nums">{sg.avgWaitlistDays} days</td>
                   <td className="py-3 px-4 text-center">
                     <span className="text-[10px] font-medium px-2 py-0.5 rounded bg-emerald-50 dark:bg-emerald-950/40 text-emerald-700 dark:text-emerald-300">
                       Normal Parity
@@ -185,7 +201,7 @@ export const FairnessMetricsView: React.FC = () => {
         </div>
       </div>
 
-      {/* Regional Parity Breakdown */}
+      {/* Regional Parity */}
       <div className="bg-white dark:bg-[#152232] p-5 rounded-2xl border border-[#EFE7DE] dark:border-[#273A52] shadow-xs space-y-4">
         <h3 className="text-sm font-bold text-[#243B55] dark:text-white flex items-center gap-2">
           <MapPin size={16} className="text-[#E98F83]" />
@@ -194,26 +210,85 @@ export const FairnessMetricsView: React.FC = () => {
 
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-xs">
           {activeMetric.regionalParity.map((rp, idx) => (
-            <div key={idx} className="p-3.5 bg-[#FDFBF7] dark:bg-[#111A26] rounded-xl border border-[#EFE7DE] dark:border-[#203247] space-y-2">
+            <div
+              key={idx}
+              className="p-3.5 bg-[#FDFBF7] dark:bg-[#111A26] rounded-xl border border-[#EFE7DE] dark:border-[#203247] space-y-2"
+            >
               <span className="font-bold text-[#243B55] dark:text-white block">{rp.regionName}</span>
               <div className="flex justify-between text-[#788394] dark:text-[#94A3B8]">
                 <span>Share of Waitlist:</span>
-                <span className="font-mono font-semibold text-[#243B55] dark:text-white">{rp.shareOfRegistrations}%</span>
+                <span className="font-mono font-semibold text-[#243B55] dark:text-white">
+                  {rp.shareOfRegistrations}%
+                </span>
               </div>
               <div className="flex justify-between text-[#788394] dark:text-[#94A3B8]">
                 <span>Share of Allocations:</span>
-                <span className="font-mono font-semibold text-emerald-600 dark:text-emerald-400">{rp.shareOfAllocations}%</span>
+                <span className="font-mono font-semibold text-emerald-600 dark:text-emerald-400">
+                  {rp.shareOfAllocations}%
+                </span>
               </div>
               <div className="h-1.5 w-full bg-[#FAF6F0] dark:bg-[#1E2E40] rounded-full overflow-hidden">
-                <div
-                  className="h-full bg-[#E98F83] rounded-full"
-                  style={{ width: `${rp.shareOfAllocations}%` }}
-                />
+                <div className="h-full bg-[#E98F83] rounded-full" style={{ width: `${rp.shareOfAllocations}%` }} />
               </div>
             </div>
           ))}
         </div>
       </div>
+      {/* Gemini AI Equity Insights (Respecting Privacy Suppression) */}
+      <AiInsightPanel
+        title="Gemini AI Fairness & Equity Insights"
+        subtitle="Non-authoritative narrative interpretation respecting n < 20 privacy suppression."
+        buttonLabel="Generate Equity Insights"
+        isLoading={aiLoading}
+        error={aiError}
+        onGenerate={async () => {
+          if (aiLoading) return;
+          setAiLoading(true);
+          setAiError(null);
+          try {
+            const res = await apiRequest<AiFairnessInsightsResult>('/api/v1/ai/fairness-insights', {
+              method: 'POST',
+              body: { organType: selectedOrgan },
+            });
+            setAiInsights(res);
+          } catch (err) {
+            setAiError(err instanceof Error ? err.message : 'Unable to generate fairness insights');
+          } finally {
+            setAiLoading(false);
+          }
+        }}
+      >
+        {aiInsights && aiInsights.organType === selectedOrgan && (
+          <div className="space-y-3 pt-2 border-t border-[#EFE7DE] dark:border-[#273A52] text-xs">
+            <p className="text-[#243B55] dark:text-white leading-relaxed">{aiInsights.overallAssessment}</p>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+              <div className="p-3 rounded-xl bg-[#FDFBF7] dark:bg-[#111A26] border border-[#EFE7DE] dark:border-[#203247] space-y-1">
+                <span className="font-bold text-[#243B55] dark:text-white block">Equity Highlights</span>
+                <ul className="list-disc pl-4 space-y-1 text-[#788394]">
+                  {aiInsights.equityHighlights.map((item, idx) => (
+                    <li key={idx}>{item}</li>
+                  ))}
+                </ul>
+              </div>
+              <div className="p-3 rounded-xl bg-[#FDFBF7] dark:bg-[#111A26] border border-[#EFE7DE] dark:border-[#203247] space-y-1">
+                <span className="font-bold text-[#243B55] dark:text-white block">Monitoring Actions</span>
+                <ul className="list-disc pl-4 space-y-1 text-[#788394]">
+                  {aiInsights.recommendedMonitoringActions.map((item, idx) => (
+                    <li key={idx}>{item}</li>
+                  ))}
+                </ul>
+              </div>
+            </div>
+            <p className="text-[11px] text-amber-800 dark:text-amber-300 bg-amber-50/60 dark:bg-amber-950/30 p-2.5 rounded-xl border border-amber-200 dark:border-amber-800/50">
+              {aiInsights.suppressedCohortNote}
+            </p>
+            <div className="text-[10px] text-[#788394] flex justify-between">
+              <span>{aiInsights.disclaimer}</span>
+              <span className="font-mono">{aiInsights.model}</span>
+            </div>
+          </div>
+        )}
+      </AiInsightPanel>
     </div>
   );
 };

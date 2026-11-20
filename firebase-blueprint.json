@@ -1,0 +1,63 @@
+{
+  "entities": {
+    "UserProfile": {
+      "title": "UserProfile",
+      "description": "Authenticated LifeBridge AI user account profile",
+      "type": "object",
+      "properties": {
+        "uid": { "type": "string", "minLength": 3, "maxLength": 128, "pattern": "^[a-zA-Z0-9_\\-]+$" },
+        "email": { "type": "string", "format": "email", "maxLength": 200 },
+        "displayName": { "type": "string", "minLength": 2, "maxLength": 120 },
+        "role": { "type": "string", "enum": ["donor", "recipient", "medical", "coordinator", "hospital", "admin"] },
+        "status": { "type": "string", "enum": ["ACTIVE", "SUSPENDED"] },
+        "createdAt": { "type": "string", "format": "date-time" },
+        "updatedAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["uid", "email", "displayName", "role", "status", "createdAt"]
+    },
+    "DonorRecord": {
+      "title": "DonorRecord",
+      "description": "Organ donor registration and consent status owned by the donor user",
+      "type": "object",
+      "properties": {
+        "ownerUid": { "type": "string", "minLength": 3, "maxLength": 128, "pattern": "^[a-zA-Z0-9_\\-]+$" },
+        "anonymizedCode": { "type": "string", "minLength": 4, "maxLength": 64 },
+        "bloodGroup": { "type": "string", "enum": ["O+", "O-", "A+", "A-", "B+", "B-", "AB+", "AB-"] },
+        "donationType": { "type": "string", "enum": ["DECEASED", "LIVING"] },
+        "isWithdrawn": { "type": "boolean" },
+        "withdrawalReason": { "type": "string", "maxLength": 500 },
+        "createdAt": { "type": "string", "format": "date-time" },
+        "updatedAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["ownerUid", "anonymizedCode", "bloodGroup", "donationType", "isWithdrawn", "createdAt"]
+    },
+    "NotificationItem": {
+      "title": "NotificationItem",
+      "description": "Privacy-safe notification item for a specific user",
+      "type": "object",
+      "properties": {
+        "ownerUid": { "type": "string", "minLength": 3, "maxLength": 128, "pattern": "^[a-zA-Z0-9_\\-]+$" },
+        "title": { "type": "string", "minLength": 2, "maxLength": 140 },
+        "message": { "type": "string", "minLength": 2, "maxLength": 500 },
+        "category": { "type": "string", "enum": ["APPROVAL", "CONSENT", "LOGISTICS", "DATA_QUALITY", "ADMIN", "RECOVERY"] },
+        "isRead": { "type": "boolean" },
+        "createdAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["ownerUid", "title", "message", "category", "isRead", "createdAt"]
+    }
+  },
+  "firestore": {
+    "/users/{userId}": {
+      "schema": { "$ref": "#/entities/UserProfile" },
+      "description": "User role and status profile (private to owner or admin)"
+    },
+    "/donors/{donorId}": {
+      "schema": { "$ref": "#/entities/DonorRecord" },
+      "description": "Donor registration records owned by ownerUid"
+    },
+    "/notifications/{notificationId}": {
+      "schema": { "$ref": "#/entities/NotificationItem" },
+      "description": "In-app notifications scoped to ownerUid"
+    }
+  }
+}

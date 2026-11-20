@@ -12,7 +12,6 @@ import {
   DataQualityIssue,
   FairnessMetric
 } from '../types/index.ts';
-import { computeEventHash } from '../utils/crypto.ts';
 
 export const INITIAL_ORGAN_CONFIGS: OrganConfig[] = [
   {
@@ -1220,119 +1219,6 @@ export const INITIAL_FAIRNESS_METRICS: FairnessMetric[] = [
   },
 ];
 
-// Initialize Cryptographic Audit Events
 export function generateInitialAuditEvents(): AuditEvent[] {
-  const rawEvents = [
-    {
-      eventType: 'GENESIS_ANCHOR',
-      actorRole: 'admin' as const,
-      actorName: 'System Bootstrap Protocol',
-      entityType: 'PLATFORM',
-      entityId: 'LBA-CORE-INIT',
-      timestamp: '2026-11-10T00:00:00Z',
-      payloadSummary: 'LifeBridge AI audit chain initialized with SHA-256 and HMAC key anchor.',
-    },
-    {
-      eventType: 'CONFIG_PUBLISHED',
-      actorRole: 'admin' as const,
-      actorName: 'Dr. S. Nair (Chief Transplant Officer)',
-      entityType: 'ORGAN_CONFIG',
-      entityId: 'kidney-v1.0.0',
-      timestamp: '2026-11-10T08:00:00Z',
-      payloadSummary: 'Organ config version 1.0.0 published for Kidney with ruleset kidney-demo-v1.',
-    },
-    {
-      eventType: 'DONOR_CONSENT_VERIFIED',
-      actorRole: 'coordinator' as const,
-      actorName: 'Coordinator Arishta Ray',
-      entityType: 'DONOR',
-      entityId: 'DONOR-001',
-      timestamp: '2026-11-10T14:30:00Z',
-      payloadSummary: 'Deceased donor DNR-HYD-4892 organ consents verified with signed next-of-kin Form 8.',
-    },
-    {
-      eventType: 'DATA_QUALITY_GATE_CHECKED',
-      actorRole: 'coordinator' as const,
-      actorName: 'Deterministic Matching Engine',
-      entityType: 'MATCH_RUN',
-      entityId: 'MR-2026-K704',
-      timestamp: '2026-11-11T03:40:00Z',
-      payloadSummary: 'Data quality gate completed for Kidney ORG-K704. 1 candidate flagged for missing PRA test.',
-    },
-    {
-      eventType: 'MATCH_RECOMMENDATIONS_GENERATED',
-      actorRole: 'coordinator' as const,
-      actorName: 'Deterministic Matching Engine',
-      entityType: 'MATCH_RUN',
-      entityId: 'MR-2026-K704',
-      timestamp: '2026-11-11T03:45:00Z',
-      payloadSummary: 'Ranked 3 eligible candidates under Kidney Config v1.0.0. Rank 1: REC-KID-8211 (Score: 92.4).',
-    },
-    {
-      eventType: 'COORDINATOR_READINESS_CONFIRMED',
-      actorRole: 'coordinator' as const,
-      actorName: 'Coordinator Arishta Ray',
-      entityType: 'WORKFLOW_CASE',
-      entityId: 'CASE-2026-001',
-      timestamp: '2026-11-11T04:20:00Z',
-      payloadSummary: 'Coordinator verified recipient hospital Apollo capability and transit corridor availability.',
-    },
-    {
-      eventType: 'CLINICAL_DECISION_AUTHORIZED',
-      actorRole: 'medical' as const,
-      actorName: 'Dr. Priya Varma (Surgeon)',
-      entityType: 'APPROVAL_DECISION',
-      entityId: 'CASE-2026-001',
-      timestamp: '2026-11-11T04:50:00Z',
-      payloadSummary: 'Surgeon authorized allocation to Rank 1 (REC-KID-8211). Medical license NMC-TS-2012-74892 signed.',
-    },
-    {
-      eventType: 'CUSTODY_HANDOVER_RECORDED',
-      actorRole: 'hospital' as const,
-      actorName: 'Transit Officer Vikrant Singh',
-      entityType: 'CUSTODY_EVENT',
-      entityId: 'CUST-02',
-      timestamp: '2026-11-11T05:10:00Z',
-      payloadSummary: 'Kidney ORG-K704 sealed in transport box #LBA-704-SEAL at 3.8°C with green corridor clearance.',
-    },
-  ];
-
-  const auditTrail: AuditEvent[] = [];
-  let prevHash = '0000000000000000000000000000000000000000000000000000000000000000';
-
-  for (let i = 0; i < rawEvents.length; i++) {
-    const ev = rawEvents[i];
-    const seq = i + 1;
-    const { hash, hmac } = computeEventHash(
-      seq,
-      ev.eventType,
-      ev.actorRole,
-      ev.actorName,
-      ev.entityType,
-      ev.entityId,
-      ev.timestamp,
-      prevHash,
-      ev.payloadSummary
-    );
-
-    const auditEvent: AuditEvent = {
-      id: `AUDIT-EV-${String(seq).padStart(4, '0')}`,
-      sequenceNumber: seq,
-      eventType: ev.eventType,
-      actorRole: ev.actorRole,
-      actorName: ev.actorName,
-      entityType: ev.entityType,
-      entityId: ev.entityId,
-      timestamp: ev.timestamp,
-      previousHash: prevHash,
-      currentHash: hash,
-      hmacSignature: hmac,
-      payloadSummary: ev.payloadSummary,
-    };
-
-    auditTrail.push(auditEvent);
-    prevHash = hash;
-  }
-
-  return auditTrail;
+  return [];
 }

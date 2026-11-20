@@ -1,18 +1,14 @@
 import React, { useState } from 'react';
 import { useApp } from '../../context/AppContext.tsx';
+import { formatTimeRemaining } from '../../utils/crypto.ts';
 import { OrganTag } from '../common/OrganTag.tsx';
 import {
-  Truck,
   Clock,
   MapPin,
-  Thermometer,
-  ShieldCheck,
   AlertTriangle,
   CheckCircle2,
   X,
   ArrowRight,
-  Flame,
-  Info
 } from 'lucide-react';
 
 export const LogisticsMonitoringView: React.FC = () => {
@@ -20,14 +16,10 @@ export const LogisticsMonitoringView: React.FC = () => {
     logisticsCases,
     recordCustodyHandover,
     triggerEmergencyEscalation,
-    setActiveView,
+    resolveEscalationAlert,
   } = useApp();
 
-  const [selectedCaseId, setSelectedCaseId] = useState<string>(() => {
-    return logisticsCases[0]?.id || 'LOG-K704';
-  });
-
-  // Drawer for Level 2 / 3 Transport Details
+  const [selectedCaseId, setSelectedCaseId] = useState<string>(() => logisticsCases[0]?.id || 'LOG-K704');
   const [showDetailsDrawer, setShowDetailsDrawer] = useState(false);
   const [showHandoverModal, setShowHandoverModal] = useState(false);
   const [newCustodian, setNewCustodian] = useState('');
@@ -36,10 +28,20 @@ export const LogisticsMonitoringView: React.FC = () => {
 
   const activeCase = logisticsCases.find(l => l.id === selectedCaseId) || logisticsCases[0];
 
-  const handleHandoverSubmit = (e: React.FormEvent) => {
+  if (!activeCase) {
+    return (
+      <div className="max-w-5xl mx-auto py-8 text-center bg-white dark:bg-[#152232] p-8 rounded-3xl border border-[#EFE7DE] dark:border-[#273A52]">
+        <p className="text-sm font-semibold text-[#243B55] dark:text-white">No active organ transports found.</p>
+      </div>
+    );
+  }
+
+  const remaining = formatTimeRemaining(activeCase.preservationExpiry);
+
+  const handleHandoverSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!newCustodian.trim()) return;
-    recordCustodyHandover(
+    await recordCustodyHandover(
       activeCase.caseId,
       newCustodian,
       'Transfer to Hospital Surgical Suite',
@@ -54,14 +56,19 @@ export const LogisticsMonitoringView: React.FC = () => {
   const timelineSteps = [
     { label: 'Retrieval completed', done: true },
     { label: 'Transport started', done: true },
-    { label: activeCase.status === 'DELAYED' ? 'Delay detected' : 'On the way', done: true, isAlert: activeCase.status === 'DELAYED' },
+    {
+      label: activeCase.status === 'DELAYED' ? 'Delay detected' : 'On the way',
+      done: true,
+      isAlert: activeCase.status === 'DELAYED',
+    },
     { label: 'Hospital received organ', done: activeCase.status === 'DELIVERED' },
   ];
 
+  const openAlerts = activeCase.escalationAlerts.filter(a => !a.isResolved);
+
   return (
     <div className="space-y-8 max-w-5xl mx-auto py-2">
-      
-      {/* 1. CLEAN HEADER */}
+      {/* Header */}
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>
           <h1 className="text-2xl sm:text-3xl font-bold tracking-tight text-[#243B55] dark:text-white">
@@ -72,8 +79,7 @@ export const LogisticsMonitoringView: React.FC = () => {
           </p>
         </div>
 
-        {/* Case selector buttons */}
-        <div className="flex items-center gap-2">
+        <div className="flex flex-wrap items-center gap-2">
           {logisticsCases.map(c => (
             <button
               key={c.id}
@@ -90,9 +96,42 @@ export const LogisticsMonitoringView: React.FC = () => {
         </div>
       </div>
 
-      {/* 2. OVERVIEW CARD (Clean & Human-Centered) */}
+      {/* Active Escalation Alerts */}
+      {openAlerts.length > 0 && (
+        <div className="space-y-2.5">
+          {openAlerts.map(alert => (
+            <div
+              key={alert.id}
+              className="p-4 rounded-2xl bg-rose-50 dark:bg-rose-950/40 border border-rose-200 dark:border-rose-800 flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-xs"
+            >
+              <div className="flex items-start gap-2.5">
+                <AlertTriangle size={16} className="text-rose-600 dark:text-rose-400 shrink-0 mt-0.5" />
+                <div>
+                  <span className="font-bold text-rose-900 dark:text-rose-200 block">
+                    {alert.level.replace(/_/g, ' ')}: {alert.trigger}
+                  </span>
+                  <p className="text-rose-700 dark:text-rose-300 mt-0.5">{alert.description}</p>
+                </div>
+              </div>
+              <button
+                onClick={() =>
+                  resolveEscalationAlert(
+                    activeCase.id,
+                    alert.id,
+                    'Route cleared and alternate hospital surgical standby confirmed'
+                  )
+                }
+                className="px-3.5 py-1.5 font-bold bg-white dark:bg-[#152232] text-rose-700 dark:text-rose-300 border border-rose-300 dark:border-rose-700 rounded-xl hover:bg-rose-100 cursor-pointer shrink-0"
+              >
+                Resolve Alert
+              </button>
+            </div>
+          ))}
+        </div>
+      )}
+
+      {/* Overview Card */}
       <div className="bg-white dark:bg-[#152232] p-6 rounded-3xl border border-[#EFE7DE] dark:border-[#273A52] shadow-xs space-y-6">
-        
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-4 border-b border-[#EFE7DE] dark:border-[#273A52]">
           <div className="flex items-center gap-3">
             <OrganTag organType={activeCase.organType} size="md" />
@@ -101,18 +140,23 @@ export const LogisticsMonitoringView: React.FC = () => {
                 {activeCase.organId} · Case {activeCase.caseId}
               </span>
               <span className="text-xs text-[#788394] block mt-0.5">
-                Current Custodian: <span className="font-semibold text-[#243B55] dark:text-white">{activeCase.currentCustodian}</span>
+                Current Custodian:{' '}
+                <span className="font-semibold text-[#243B55] dark:text-white">
+                  {activeCase.currentCustodian}
+                </span>
               </span>
             </div>
           </div>
 
           <div className="flex items-center gap-2">
-            <span className={`text-xs font-semibold px-3 py-1 rounded-full ${
-              activeCase.status === 'DELAYED'
-                ? 'bg-rose-50 text-rose-700 dark:bg-rose-950 dark:text-rose-300'
-                : 'bg-emerald-50 text-emerald-700 dark:bg-emerald-950 dark:text-emerald-300'
-            }`}>
-              {activeCase.status === 'DELAYED' ? 'Route Delay Detected' : 'In Transit'}
+            <span
+              className={`text-xs font-semibold px-3 py-1 rounded-full ${
+                activeCase.status === 'DELAYED'
+                  ? 'bg-rose-50 text-rose-700 dark:bg-rose-950 dark:text-rose-300'
+                  : 'bg-emerald-50 text-emerald-700 dark:bg-emerald-950 dark:text-emerald-300'
+              }`}
+            >
+              {activeCase.status === 'DELAYED' ? 'Route Delay Detected' : activeCase.status.replace(/_/g, ' ')}
             </span>
           </div>
         </div>
@@ -120,33 +164,33 @@ export const LogisticsMonitoringView: React.FC = () => {
         {/* Route Details */}
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 text-xs">
           <div className="p-4 rounded-2xl bg-[#F8F5EF] dark:bg-[#111A26] space-y-1">
-            <span className="text-[#788394] block flex items-center gap-1">
+            <span className="text-[#788394] flex items-center gap-1">
               <MapPin size={13} className="text-[#E98F83]" />
               Origin Hospital
             </span>
-            <span className="font-bold text-[#243B55] dark:text-white">{activeCase.originHospital}</span>
+            <span className="font-bold text-[#243B55] dark:text-white block">{activeCase.originHospital}</span>
           </div>
 
           <div className="p-4 rounded-2xl bg-[#F8F5EF] dark:bg-[#111A26] space-y-1">
-            <span className="text-[#788394] block flex items-center gap-1">
+            <span className="text-[#788394] flex items-center gap-1">
               <MapPin size={13} className="text-[#A9BBA8]" />
               Destination Hospital
             </span>
-            <span className="font-bold text-[#243B55] dark:text-white">{activeCase.destinationHospital}</span>
+            <span className="font-bold text-[#243B55] dark:text-white block">{activeCase.destinationHospital}</span>
           </div>
 
           <div className="p-4 rounded-2xl bg-[#F8F5EF] dark:bg-[#111A26] space-y-1">
-            <span className="text-[#788394] block flex items-center gap-1">
+            <span className="text-[#788394] flex items-center gap-1">
               <Clock size={13} className="text-[#E98F83]" />
               Estimated Arrival
             </span>
-            <span className="font-bold font-mono text-[#243B55] dark:text-white text-sm">
+            <span className="font-bold font-mono text-[#243B55] dark:text-white text-sm block">
               {new Date(activeCase.estimatedArrival).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })} ({activeCase.distanceKm} km)
             </span>
           </div>
         </div>
 
-        {/* 3. VISUAL PROGRESS TIMELINE */}
+        {/* Progress Timeline */}
         <div className="space-y-3 pt-2">
           <span className="text-xs font-bold uppercase tracking-wider text-[#788394] dark:text-[#94A3B8] block">
             Progress Timeline
@@ -171,7 +215,7 @@ export const LogisticsMonitoringView: React.FC = () => {
           </div>
         </div>
 
-        {/* Preservation Timer (Clearly Illustrative) */}
+        {/* Dynamic Preservation Timer */}
         <div className="p-4 rounded-2xl bg-[#F8F5EF] dark:bg-[#111A26] border border-[#EFE7DE] dark:border-[#273A52] flex flex-col sm:flex-row sm:items-center justify-between gap-4">
           <div>
             <span className="text-xs font-bold text-[#243B55] dark:text-white block">
@@ -183,17 +227,25 @@ export const LogisticsMonitoringView: React.FC = () => {
           </div>
 
           <div className="text-right sm:shrink-0">
-            <span className="text-xl font-bold font-mono text-[#E98F83] tabular-nums">
-              {activeCase.organType === 'heart' ? '03h 25m' : '23h 48m'}
+            <span
+              className={`text-xl font-bold font-mono tabular-nums ${
+                remaining.isUrgent ? 'text-rose-600 dark:text-rose-400' : 'text-[#E98F83]'
+              }`}
+            >
+              {remaining.label}
             </span>
-            <span className="text-[10px] text-[#788394] block">Preservation window</span>
+            <span className="text-[10px] text-[#788394] block">
+              Remaining of {activeCase.preservationWindowHours}h window
+            </span>
           </div>
         </div>
 
-        {/* Actions Strip */}
+        {/* Actions */}
         <div className="flex flex-wrap items-center justify-between gap-3 pt-2">
           <button
-            onClick={() => triggerEmergencyEscalation(activeCase.id, 'Traffic delay detected on transit corridor')}
+            onClick={() =>
+              triggerEmergencyEscalation(activeCase.id, 'Traffic delay detected on transit corridor')
+            }
             className="px-3.5 py-1.5 text-xs font-semibold text-rose-700 bg-rose-50 border border-rose-200 dark:bg-rose-950/40 dark:text-rose-300 dark:border-rose-800 rounded-xl hover:bg-rose-100 transition-colors cursor-pointer"
           >
             Simulate Delay Alert
@@ -218,11 +270,10 @@ export const LogisticsMonitoringView: React.FC = () => {
         </div>
       </div>
 
-      {/* LEVEL 2 & 3: DETAIL DRAWER (Custody history, Temperature, Signatures) */}
+      {/* Details Drawer */}
       {showDetailsDrawer && (
         <div className="fixed inset-0 z-50 flex justify-end bg-black/40 backdrop-blur-xs">
           <div className="relative w-full max-w-xl bg-white dark:bg-[#152232] border-l border-[#EFE7DE] dark:border-[#273A52] shadow-2xl flex flex-col h-full animate-in slide-in-from-right duration-200">
-            
             <div className="p-5 border-b border-[#EFE7DE] dark:border-[#273A52] flex items-center justify-between">
               <div>
                 <span className="text-[10px] font-bold uppercase tracking-wider text-[#E98F83]">
@@ -241,15 +292,13 @@ export const LogisticsMonitoringView: React.FC = () => {
             </div>
 
             <div className="flex-1 overflow-y-auto p-5 space-y-6">
-              
-              {/* Custody Handovers Timeline */}
               <div className="space-y-3">
                 <h4 className="text-xs font-bold uppercase tracking-wider text-[#243B55] dark:text-white">
                   Verifiable Chain of Custody
                 </h4>
 
                 <div className="space-y-3">
-                  {activeCase.custodyHistory.map((custody) => (
+                  {activeCase.custodyHistory.map(custody => (
                     <div
                       key={custody.id}
                       className="p-4 rounded-2xl bg-[#F8F5EF] dark:bg-[#111A26] border border-[#EFE7DE] dark:border-[#273A52] text-xs space-y-1.5"
@@ -261,25 +310,24 @@ export const LogisticsMonitoringView: React.FC = () => {
                         </span>
                       </div>
                       <div className="text-[#788394]">
-                        Custodian: <span className="font-semibold text-[#243B55] dark:text-white">{custody.custodianName}</span> ({custody.organization})
+                        Custodian:{' '}
+                        <span className="font-semibold text-[#243B55] dark:text-white">
+                          {custody.custodianName}
+                        </span>{' '}
+                        ({custody.organization})
                       </div>
                       <div className="flex items-center gap-3 text-[11px] pt-1">
-                        <span className="font-mono text-[#E98F83] font-bold">
-                          {custody.tempCelsius}°C
-                        </span>
+                        <span className="font-mono text-[#E98F83] font-bold">{custody.tempCelsius}°C</span>
                         <span className="text-emerald-600 dark:text-emerald-400 font-semibold">
                           Condition: {custody.conditionAssessment}
                         </span>
                       </div>
-                      <p className="text-[11px] text-[#788394] italic pt-1">
-                        "{custody.notes}"
-                      </p>
+                      <p className="text-[11px] text-[#788394] italic pt-1">"{custody.notes}"</p>
                     </div>
                   ))}
                 </div>
               </div>
 
-              {/* Event Log */}
               <div className="space-y-3">
                 <h4 className="text-xs font-bold uppercase tracking-wider text-[#243B55] dark:text-white">
                   Transport History
@@ -292,9 +340,7 @@ export const LogisticsMonitoringView: React.FC = () => {
                       className="p-3 rounded-xl border border-[#EFE7DE] dark:border-[#273A52] bg-white dark:bg-[#152232] flex items-center justify-between gap-3"
                     >
                       <div>
-                        <span className="font-semibold text-[#243B55] dark:text-white block">
-                          {ev.message}
-                        </span>
+                        <span className="font-semibold text-[#243B55] dark:text-white block">{ev.message}</span>
                       </div>
                       <span className="font-mono text-[10px] text-[#788394] shrink-0">
                         {new Date(ev.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
@@ -317,13 +363,11 @@ export const LogisticsMonitoringView: React.FC = () => {
         </div>
       )}
 
-      {/* RECORD CUSTODY HANDOVER MODAL */}
+      {/* Handover Modal */}
       {showHandoverModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40 backdrop-blur-xs">
           <div className="bg-white dark:bg-[#152232] rounded-3xl border border-[#EFE7DE] dark:border-[#273A52] max-w-md w-full p-6 shadow-2xl space-y-4">
-            <h3 className="text-base font-bold text-[#243B55] dark:text-white">
-              Record Custody Handover
-            </h3>
+            <h3 className="text-base font-bold text-[#243B55] dark:text-white">Record Custody Handover</h3>
 
             <form onSubmit={handleHandoverSubmit} className="space-y-3">
               <div>
@@ -334,7 +378,7 @@ export const LogisticsMonitoringView: React.FC = () => {
                   type="text"
                   required
                   value={newCustodian}
-                  onChange={(e) => setNewCustodian(e.target.value)}
+                  onChange={e => setNewCustodian(e.target.value)}
                   placeholder="e.g. Sister Mercy / Lead Nurse OT 4"
                   className="w-full text-xs p-3 rounded-xl border border-[#EFE7DE] dark:border-[#273A52] bg-[#F8F5EF] dark:bg-[#0E1722] text-[#243B55] dark:text-white focus:outline-none"
                 />
@@ -349,7 +393,7 @@ export const LogisticsMonitoringView: React.FC = () => {
                   step="0.1"
                   required
                   value={handoverTemp}
-                  onChange={(e) => setHandoverTemp(e.target.value)}
+                  onChange={e => setHandoverTemp(e.target.value)}
                   className="w-full text-xs p-3 rounded-xl border border-[#EFE7DE] dark:border-[#273A52] bg-[#F8F5EF] dark:bg-[#0E1722] text-[#243B55] dark:text-white focus:outline-none"
                 />
               </div>
@@ -361,7 +405,7 @@ export const LogisticsMonitoringView: React.FC = () => {
                 <textarea
                   rows={2}
                   value={handoverNotes}
-                  onChange={(e) => setHandoverNotes(e.target.value)}
+                  onChange={e => setHandoverNotes(e.target.value)}
                   placeholder="Box seal intact, cold perfusion active..."
                   className="w-full text-xs p-3 rounded-xl border border-[#EFE7DE] dark:border-[#273A52] bg-[#F8F5EF] dark:bg-[#0E1722] text-[#243B55] dark:text-white focus:outline-none"
                 />

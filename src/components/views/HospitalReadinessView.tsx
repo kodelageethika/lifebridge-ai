@@ -1,23 +1,24 @@
 import React from 'react';
 import { useApp } from '../../context/AppContext.tsx';
 import { OrganTag } from '../common/OrganTag.tsx';
-import { OrganType } from '../../types/index.ts';
-import {
-  Building2,
-  CheckCircle2,
-  XCircle,
-  Clock,
-  ShieldCheck,
-  AlertTriangle,
-  UserCheck
-} from 'lucide-react';
+import { Building2 } from 'lucide-react';
 
 export const HospitalReadinessView: React.FC = () => {
-  const { hospitals, toggleHospitalReadiness } = useApp();
+  const { hospitals, currentUserRole, toggleHospitalReadiness } = useApp();
+
+  const canToggleReadiness =
+    currentUserRole === 'hospital' || currentUserRole === 'coordinator' || currentUserRole === 'admin';
+
+  if (hospitals.length === 0) {
+    return (
+      <div className="p-8 text-center bg-white dark:bg-[#152232] rounded-2xl border border-[#EFE7DE] dark:border-[#273A52] text-xs text-[#788394]">
+        Hospital readiness data loading...
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-6">
-      
       {/* Header */}
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 bg-white dark:bg-[#152232] p-5 rounded-2xl border border-[#EFE7DE] dark:border-[#273A52] shadow-xs">
         <div>
@@ -33,9 +34,15 @@ export const HospitalReadinessView: React.FC = () => {
             Real-time facility readiness, dedicated surgical teams, and ICU bed availability verification.
           </p>
         </div>
+
+        {!canToggleReadiness && (
+          <span className="text-[11px] text-[#788394] bg-[#F8F5EF] dark:bg-[#111A26] px-3 py-1.5 rounded-xl border border-[#EFE7DE] dark:border-[#273A52]">
+            Read-only view (Hospital / Coordinator role required to toggle readiness)
+          </span>
+        )}
       </div>
 
-      {/* Hospital Cards Grid */}
+      {/* Hospital Cards */}
       <div className="space-y-4">
         {hospitals.map(hospital => (
           <div
@@ -46,9 +53,7 @@ export const HospitalReadinessView: React.FC = () => {
               <div>
                 <div className="flex items-center gap-2">
                   <Building2 size={16} className="text-[#E98F83]" />
-                  <h3 className="text-base font-bold text-[#243B55] dark:text-white">
-                    {hospital.name}
-                  </h3>
+                  <h3 className="text-base font-bold text-[#243B55] dark:text-white">{hospital.name}</h3>
                   <span className="text-[10px] font-semibold px-2 py-0.5 rounded bg-[#FAF6F0] dark:bg-[#1E2E40] text-[#E98F83] dark:text-[#FF8A8A]">
                     {hospital.tier.replace(/_/g, ' ')}
                   </span>
@@ -59,7 +64,6 @@ export const HospitalReadinessView: React.FC = () => {
               </div>
             </div>
 
-            {/* Organ Capabilities Strip */}
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
               {hospital.capabilities.map(cap => (
                 <div
@@ -73,13 +77,20 @@ export const HospitalReadinessView: React.FC = () => {
                   <div className="flex items-center justify-between mb-2">
                     <OrganTag organType={cap.organType} size="sm" />
                     <button
+                      disabled={!canToggleReadiness}
                       onClick={() => toggleHospitalReadiness(hospital.id, cap.organType)}
-                      className={`text-[10px] font-bold px-2 py-0.5 rounded-md cursor-pointer transition-colors ${
+                      className={`text-[10px] font-bold px-2 py-0.5 rounded-md transition-colors ${
+                        canToggleReadiness ? 'cursor-pointer' : 'cursor-not-allowed opacity-75'
+                      } ${
                         cap.isReady
                           ? 'bg-emerald-100 dark:bg-emerald-950/80 text-emerald-800 dark:text-emerald-300 hover:bg-rose-100 hover:text-rose-800'
                           : 'bg-rose-100 dark:bg-rose-950/80 text-rose-800 dark:text-rose-300 hover:bg-emerald-100 hover:text-emerald-800'
                       }`}
-                      title="Click to toggle facility readiness status"
+                      title={
+                        canToggleReadiness
+                          ? 'Click to toggle facility readiness status'
+                          : 'Hospital / Coordinator authorization required'
+                      }
                     >
                       {cap.isReady ? 'ACTIVE & READY' : 'ON HOLD / DIVERT'}
                     </button>
@@ -99,7 +110,8 @@ export const HospitalReadinessView: React.FC = () => {
                       </span>
                     </div>
                     <div className="text-[10px] text-[#A0AEC0] pt-1">
-                      Verified: {new Date(cap.lastVerifiedAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                      Verified:{' '}
+                      {new Date(cap.lastVerifiedAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
                     </div>
                   </div>
                 </div>

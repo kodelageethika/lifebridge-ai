@@ -1,0 +1,413 @@
+// Relational PostgreSQL Schema Blueprint for LifeBridge AI
+// Synchronized with DATABASE_SCHEMA.md and domain models in server/src/types/index.ts
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum UserRole {
+  coordinator
+  medical
+  hospital
+  donor
+  recipient
+  admin
+}
+
+enum AccountStatus {
+  ACTIVE
+  SUSPENDED
+}
+
+enum OrganType {
+  kidney
+  liver
+  heart
+  lung
+  pancreas
+  intestine
+}
+
+enum WorkflowState {
+  ORGAN_REGISTERED
+  MATCHING_COMPLETED
+  COORDINATOR_REVIEW
+  MEDICAL_REVIEW
+  AUTHORIZED_DECISION
+  TRANSPORT_APPROVED
+  TRANSPLANT_COMPLETED
+  REJECTED
+  WITHDRAWN
+  CANCELLED
+  ESCALATED
+  NEEDS_VERIFICATION
+}
+
+model User {
+  id                String         @id @default(cuid())
+  email             String         @unique
+  passwordHash      String
+  displayName       String
+  role              UserRole
+  status            AccountStatus  @default(ACTIVE)
+  licenseOrBadgeId  String?
+  hospitalId        String?
+  hospital          Hospital?      @relation(fields: [hospitalId], references: [id])
+  linkedDonorId     String?        @unique
+  linkedRecipientId String?        @unique
+  firebaseUid       String?        @unique
+  sessions          Session[]
+  notifications     Notification[]
+  createdAt         DateTime       @default(now())
+  updatedAt         DateTime       @updatedAt
+  lastLoginAt       DateTime?
+
+  @@index([role, status])
+}
+
+model Session {
+  id        String   @id @default(cuid())
+  tokenHash String   @unique
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  role      UserRole
+  createdAt DateTime @default(now())
+  expiresAt DateTime
+
+  @@index([userId])
+  @@index([expiresAt])
+}
+
+model PasswordResetToken {
+  id        String    @id @default(cuid())
+  email     String
+  tokenHash String    @unique
+  createdAt DateTime  @default(now())
+  expiresAt DateTime
+  usedAt    DateTime?
+
+  @@index([email])
+}
+
+model Hospital {
+  id           String               @id
+  name         String
+  city         String
+  state        String
+  tier         String
+  capabilities HospitalCapability[]
+  users        User[]
+  donors       Donor[]
+  recipients   Recipient[]
+  organs       OrganRecord[]
+}
+
+model HospitalCapability {
+  id                 String    @id @default(cuid())
+  hospitalId         String
+  hospital           Hospital  @relation(fields: [hospitalId], references: [id], onDelete: Cascade)
+  organType          OrganType
+  isCapable          Boolean
+  isReady            Boolean
+  activeSurgicalTeam String
+  icuBedAvailable    Boolean
+  lastVerifiedAt     DateTime
+
+  @@unique([hospitalId, organType])
+}
+
+model Donor {
+  id                  String              @id
+  ownerUserId         String?
+  anonymizedCode      String              @unique
+  age                 Int
+  gender              String
+  bloodGroup          String
+  tissueHLA           String
+  hospitalId          String
+  hospitalName        String?
+  hospital            Hospital            @relation(fields: [hospitalId], references: [id])
+  donationType        String
+  registeredAt        DateTime            @default(now())
+  consents            DonorOrganConsent[]
+  organs              OrganRecord[]
+  isWithdrawn         Boolean             @default(false)
+  withdrawalReason    String?
+  withdrawalTimestamp DateTime?
+  documentsVerified   Boolean             @default(true)
+
+  @@index([hospitalId, isWithdrawn])
+}
+
+model DonorOrganConsent {
+  id                 String    @id @default(cuid())
+  donorId            String
+  donor              Donor     @relation(fields: [donorId], references: [id], onDelete: Cascade)
+  organType          OrganType
+  consented          Boolean
+  version            String
+  timestamp          DateTime  @default(now())
+  verifiedBy         String?
+  verificationStatus String
+
+  @@unique([donorId, organType])
+}
+
+model Recipient {
+  id                        String           @id
+  ownerUserId               String?
+  anonymizedCode            String           @unique
+  age                       Int
+  gender                    String
+  bloodGroup                String
+  tissueHLA                 String
+  organType                 OrganType
+  hospitalId                String
+  hospitalName              String?
+  hospital                  Hospital         @relation(fields: [hospitalId], references: [id])
+  urgencyScore              Float
+  urgencyMetricName         String
+  waitlistDays              Int
+  distanceKm                Float
+  medicalVerificationStatus String
+  missingDataFlags          Json
+  status                    String
+  registeredAt              DateTime         @default(now())
+  isPediatric               Boolean?         @default(false)
+  recoveryRecords           RecoveryRecord[]
+
+  @@index([organType, status])
+  @@index([hospitalId])
+}
+
+model OrganRecord {
+  id                      String         @id
+  donorId                 String
+  donorCode               String?
+  donor                   Donor          @relation(fields: [donorId], references: [id])
+  organType               OrganType
+  retrievalTimestamp      DateTime
+  preservationWindowHours Float
+  bloodGroup              String
+  tissueHLA               String
+  hospitalId              String
+  hospitalName            String?
+  hospital                Hospital       @relation(fields: [hospitalId], references: [id])
+  donationType            String
+  status                  String
+  coldIschemiaStart       DateTime
+  conditionNotes          String
+  matchRuns               MatchRun[]
+  workflowCases           WorkflowCase[]
+
+  @@index([organType, status])
+}
+
+model OrganConfig {
+  id                      String    @id @default(cuid())
+  organType               OrganType @unique
+  configVersion           String
+  rulesetVersion          String
+  configHash              String
+  environment             String    @default("synthetic_demo")
+  preservationWindowHours Float
+  warningThresholdHours   Float
+  weights                 Json
+  requiresHumanApproval   Boolean   @default(true)
+  isPublished             Boolean   @default(true)
+  publishedAt             DateTime  @default(now())
+  publishedBy             String
+}
+
+model MatchRun {
+  id                 String      @id
+  organId            String
+  organ              OrganRecord @relation(fields: [organId], references: [id])
+  organType          OrganType
+  donorCode          String
+  executedAt         DateTime    @default(now())
+  configVersion      String
+  rulesetVersion     String
+  configHash         String
+  status             String
+  candidates         Json
+  excludedCandidates Json
+  dataQualityChecked Boolean     @default(true)
+
+  @@index([organId, executedAt])
+}
+
+model WorkflowCase {
+  id                    String               @id
+  caseNumber            String               @unique
+  organId               String
+  organ                 OrganRecord          @relation(fields: [organId], references: [id])
+  organType             OrganType
+  donorCode             String
+  selectedRecipientId   String?
+  selectedRecipientCode String?
+  currentState          WorkflowState
+  matchRunId            String
+  coordinatorReviewer   String?
+  medicalReviewer       String?
+  approvalDecision      Json?
+  history               WorkflowTransition[]
+  logisticsCase         LogisticsCase?
+  priorityLevel         String
+  createdAt             DateTime             @default(now())
+  updatedAt             DateTime             @updatedAt
+
+  @@index([currentState, organType])
+}
+
+model WorkflowTransition {
+  id              String        @id
+  workflowCaseId  String
+  workflowCase    WorkflowCase  @relation(fields: [workflowCaseId], references: [id], onDelete: Cascade)
+  fromState       WorkflowState
+  toState         WorkflowState
+  actorId         String
+  actorName       String
+  actorRole       UserRole
+  timestamp       DateTime      @default(now())
+  reason          String
+  supportingDocId String?
+
+  @@index([workflowCaseId, timestamp])
+}
+
+model LogisticsCase {
+  id                      String         @id
+  caseId                  String         @unique
+  workflowCase            WorkflowCase   @relation(fields: [caseId], references: [id])
+  organId                 String
+  organType               OrganType
+  originHospital          String
+  destinationHospital     String
+  distanceKm              Float
+  retrievalTime           DateTime
+  preservationExpiry      DateTime
+  preservationWindowHours Float
+  estimatedArrival        DateTime
+  currentCustodian        String
+  status                  String
+  delayMinutes            Int            @default(0)
+  custodyHistory          CustodyEvent[]
+  logisticsEvents         Json
+  escalationAlerts        Json
+
+  @@index([status, organType])
+}
+
+model CustodyEvent {
+  id                  String        @id
+  logisticsCaseId     String
+  logisticsCase       LogisticsCase @relation(fields: [logisticsCaseId], references: [id], onDelete: Cascade)
+  timestamp           DateTime      @default(now())
+  stageName           String
+  custodianName       String
+  custodianRole       String
+  organization        String
+  location            String
+  tempCelsius         Float
+  conditionAssessment String
+  signatureHash       String
+  notes               String
+
+  @@index([logisticsCaseId, timestamp])
+}
+
+model AuditEvent {
+  id             String   @id
+  sequenceNumber Int      @unique
+  eventType      String
+  actorRole      UserRole
+  actorName      String
+  entityType     String
+  entityId       String
+  timestamp      DateTime @default(now())
+  previousHash   String
+  currentHash    String
+  hmacSignature  String
+  payloadSummary String
+  isTampered     Boolean  @default(false)
+
+  @@index([eventType, actorRole])
+  @@index([timestamp])
+}
+
+model RecoveryRecord {
+  id                         String    @id
+  ownerUserId                String?
+  recipientId                String
+  recipient                  Recipient @relation(fields: [recipientId], references: [id])
+  recipientCode              String
+  organType                  OrganType
+  transplantDate             String
+  postOpDays                 Int
+  graftStatus                String
+  medicationAdherencePercent Float
+  lastFollowUpDate           String
+  nextScheduledDate          String
+  isFollowUpMissed           Boolean   @default(false)
+  labs                       Json
+  clinicianNotes             String
+
+  @@index([recipientId])
+}
+
+model DataQualityIssue {
+  id               String     @id
+  entityType       String
+  entityId         String
+  entityCode       String
+  organType        OrganType?
+  severity         String
+  field            String
+  issueDescription String
+  createdAt        DateTime   @default(now())
+  isResolved       Boolean    @default(false)
+
+  @@index([isResolved, severity])
+}
+
+model Notification {
+  id              String    @id
+  userId          String?
+  user            User?     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  targetRole      UserRole?
+  category        String
+  title           String
+  message         String
+  relatedEntityId String?
+  isRead          Boolean   @default(false)
+  createdAt       DateTime  @default(now())
+  deliveryChannel String    @default("IN_APP")
+  emailStatus     String?
+  dedupKey        String?   @unique
+
+  @@index([userId, targetRole, isRead])
+}
+
+model SimulationRecord {
+  id              String    @id
+  actorId         String
+  actorName       String
+  organType       OrganType
+  candidateAId    String
+  candidateACode  String
+  candidateBId    String
+  candidateBCode  String
+  weightsUsed     Json
+  scoreA          Json
+  scoreB          Json
+  recommendedSide String
+  createdAt       DateTime  @default(now())
+
+  @@index([organType, createdAt])
+}

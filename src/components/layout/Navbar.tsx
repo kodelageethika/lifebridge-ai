@@ -1,26 +1,24 @@
 import React, { useState } from 'react';
 import { useApp, ActiveView } from '../../context/AppContext.tsx';
-import { UserRole } from '../../types/index.ts';
+import { useAuth } from '../../context/AuthContext.tsx';
 import {
   Sun,
   Moon,
-  Zap,
   Menu,
   X,
-  User,
   HeartHandshake,
   ShieldCheck,
-  Stethoscope,
-  Activity,
-  GitBranch,
   Truck,
   RotateCcw,
   Scale,
   FileCheck,
   Building2,
   ChevronDown,
-  Layers,
-  ArrowRight
+  ArrowRight,
+  Bell,
+  LogIn,
+  LogOut,
+  CheckCheck,
 } from 'lucide-react';
 
 export const Navbar: React.FC = () => {
@@ -30,19 +28,26 @@ export const Navbar: React.FC = () => {
     activeView,
     setActiveView,
     currentUserRole,
-    setCurrentUserRole,
-    setIsScenarioDrawerOpen,
+    currentUserName,
+    notifications,
+    markNotificationRead,
+    markAllNotificationsRead,
   } = useApp();
+
+  const { user, isAuthenticated, openAuthModal, logout } = useAuth();
 
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [roleDropdownOpen, setRoleDropdownOpen] = useState(false);
   const [moreDropdownOpen, setMoreDropdownOpen] = useState(false);
+  const [notifOpen, setNotifOpen] = useState(false);
 
-  // Check if we are currently in Public/Patient mode or Professional mode
   const isPublicView = ['landing', 'how-it-works', 'organ-info', 'about'].includes(activeView);
-  const isPatientView = activeView === 'patient-portal' || currentUserRole === 'donor' || currentUserRole === 'recipient';
+  const isPatientView =
+    activeView === 'patient-portal' ||
+    (isAuthenticated && (currentUserRole === 'donor' || currentUserRole === 'recipient'));
 
-  // Professional Navigation (Part 2.B & Part 4)
+  const unreadCount = notifications.filter(n => !n.isRead).length;
+
   const proNavLinks: { view: ActiveView; label: string }[] = [
     { view: 'dashboard', label: 'Home' },
     { view: 'matching', label: 'Matching' },
@@ -50,7 +55,6 @@ export const Navbar: React.FC = () => {
     { view: 'logistics', label: 'Organ Tracking' },
   ];
 
-  // Public Navigation (Part 2.A)
   const publicNavLinks: { view: ActiveView; label: string }[] = [
     { view: 'landing', label: 'Home' },
     { view: 'how-it-works', label: 'How It Works' },
@@ -58,30 +62,36 @@ export const Navbar: React.FC = () => {
     { view: 'about', label: 'About' },
   ];
 
-  const roles: { role: UserRole; title: string; badge: string; isPatient?: boolean }[] = [
-    { role: 'coordinator', title: 'Transplant Coordinator', badge: 'Ops' },
-    { role: 'medical', title: 'Transplant Surgeon / Doctor', badge: 'Clinical' },
-    { role: 'hospital', title: 'Hospital Administrator', badge: 'Hospital' },
-    { role: 'admin', title: 'System Administrator', badge: 'Admin' },
-    { role: 'donor', title: 'Organ Donor Profile', badge: 'Patient', isPatient: true },
-    { role: 'recipient', title: 'Recipient Candidate', badge: 'Patient', isPatient: true },
-  ];
+  const roleBadges: Record<string, string> = {
+    coordinator: 'Ops',
+    medical: 'Clinical',
+    hospital: 'Hospital',
+    admin: 'Admin',
+    donor: 'Donor',
+    recipient: 'Recipient',
+  };
 
-  const currentRoleInfo = roles.find(r => r.role === currentUserRole) || roles[0];
-
-  const handleRoleSelect = (role: UserRole) => {
-    setCurrentUserRole(role);
-    setRoleDropdownOpen(false);
-    if (role === 'donor' || role === 'recipient') {
+  const handlePortalEntry = () => {
+    if (!isAuthenticated) {
+      openAuthModal('signin');
+      return;
+    }
+    if (user?.role === 'donor' || user?.role === 'recipient') {
       setActiveView('patient-portal');
-    } else if (isPublicView) {
+    } else {
       setActiveView('dashboard');
     }
   };
 
+  const handleSignOut = async () => {
+    setRoleDropdownOpen(false);
+    await logout();
+    setActiveView('landing');
+  };
+
   return (
     <>
-      {/* 1. Persistent Non-Negotiable Demonstration Banner */}
+      {/* Persistent Non-Negotiable Demonstration Banner */}
       <div className="bg-[#243B55] text-white text-[11px] sm:text-xs py-1.5 px-4 text-center tracking-wide flex items-center justify-center gap-2 z-50">
         <span className="font-bold uppercase tracking-wider bg-white/20 px-1.5 py-0.2 rounded text-[9px]">
           Demo Prototype
@@ -91,15 +101,14 @@ export const Navbar: React.FC = () => {
         </span>
       </div>
 
-      {/* 2. Main Top Bar adhering to 3-Zone Contract */}
+      {/* Main Top Bar */}
       <header className="sticky top-0 z-40 bg-white/95 dark:bg-[#121D2A]/95 backdrop-blur-md border-b border-[#EFE7DE] dark:border-[#273A52] transition-colors">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 flex items-center justify-between gap-4 md:gap-8 h-16">
-          
-          {/* Zone 1: Single Brand Wordmark */}
+          {/* Zone 1: Brand Wordmark */}
           <div className="flex items-center gap-2.5 shrink-0">
             <button
               onClick={() => setActiveView('landing')}
-              className="flex items-center gap-2.5 text-left group focus:outline-none"
+              className="flex items-center gap-2.5 text-left group focus:outline-none cursor-pointer"
             >
               <div className="w-8 h-8 rounded-xl bg-[#E98F83] text-white flex items-center justify-center shadow-xs group-hover:scale-105 transition-transform">
                 <HeartHandshake size={18} className="text-white" />
@@ -112,10 +121,9 @@ export const Navbar: React.FC = () => {
             </button>
           </div>
 
-          {/* Zone 2: Navigation Links (Clean, Single-Line, Uncrowded) */}
+          {/* Zone 2: Navigation Links */}
           <nav className="hidden md:flex items-center gap-1 lg:gap-2">
             {isPublicView ? (
-              // Public Navigation Links
               publicNavLinks.map(link => {
                 const isActive = activeView === link.view;
                 return (
@@ -133,7 +141,6 @@ export const Navbar: React.FC = () => {
                 );
               })
             ) : isPatientView ? (
-              // Patient Experience Navigation Links
               <>
                 <button
                   onClick={() => setActiveView('patient-portal')}
@@ -147,13 +154,12 @@ export const Navbar: React.FC = () => {
                 </button>
                 <button
                   onClick={() => setActiveView('landing')}
-                  className="px-3 py-1.5 text-xs font-semibold text-[#788394] hover:text-[#243B55] rounded-lg transition-colors cursor-pointer"
+                  className="px-3 py-1.5 text-xs font-semibold text-[#788394] hover:text-[#243B55] dark:hover:text-white rounded-lg transition-colors cursor-pointer"
                 >
                   Public Guide
                 </button>
               </>
             ) : (
-              // Professional Navigation Links (Part 2.B)
               <>
                 {proNavLinks.map(link => {
                   const isActive = activeView === link.view;
@@ -172,7 +178,7 @@ export const Navbar: React.FC = () => {
                   );
                 })}
 
-                {/* Categorized "More" Dropdown (Part 4 Screen 6) */}
+                {/* More Dropdown */}
                 <div className="relative">
                   <button
                     onClick={() => setMoreDropdownOpen(prev => !prev)}
@@ -185,8 +191,6 @@ export const Navbar: React.FC = () => {
 
                   {moreDropdownOpen && (
                     <div className="absolute top-full left-0 mt-1.5 w-64 bg-white dark:bg-[#152232] border border-[#EFE7DE] dark:border-[#273A52] rounded-2xl shadow-xl p-3 z-50 animate-in fade-in zoom-in-95 duration-150 space-y-3">
-                      
-                      {/* DONATION */}
                       <div>
                         <span className="text-[10px] font-bold text-[#E98F83] uppercase tracking-wider block px-2 mb-1">
                           Donation
@@ -200,7 +204,6 @@ export const Navbar: React.FC = () => {
                         </button>
                       </div>
 
-                      {/* HOSPITAL OPERATIONS */}
                       <div>
                         <span className="text-[10px] font-bold text-[#E98F83] uppercase tracking-wider block px-2 mb-1">
                           Hospital Operations
@@ -221,7 +224,6 @@ export const Navbar: React.FC = () => {
                         </button>
                       </div>
 
-                      {/* PATIENT CARE */}
                       <div>
                         <span className="text-[10px] font-bold text-[#E98F83] uppercase tracking-wider block px-2 mb-1">
                           Patient Care
@@ -235,7 +237,6 @@ export const Navbar: React.FC = () => {
                         </button>
                       </div>
 
-                      {/* OVERSIGHT & RESEARCH */}
                       <div>
                         <span className="text-[10px] font-bold text-[#E98F83] uppercase tracking-wider block px-2 mb-1">
                           Oversight & Research
@@ -270,18 +271,13 @@ export const Navbar: React.FC = () => {
           </nav>
 
           {/* Zone 3: Actions & Controls */}
-          <div className="flex items-center gap-2.5 sm:gap-3 shrink-0">
-            
-            {/* Context Switcher Button: Public Website vs Clinical Portal */}
+          <div className="flex items-center gap-2 sm:gap-2.5 shrink-0">
             {isPublicView ? (
               <button
-                onClick={() => {
-                  setCurrentUserRole('coordinator');
-                  setActiveView('dashboard');
-                }}
+                onClick={handlePortalEntry}
                 className="px-3.5 py-1.5 text-xs font-semibold bg-[#243B55] hover:bg-[#1D3045] text-white rounded-xl transition-all flex items-center gap-1.5 shadow-xs cursor-pointer"
               >
-                <span>Clinical Portal</span>
+                <span>{isAuthenticated ? 'Open Portal' : 'Clinical Portal'}</span>
                 <ArrowRight size={13} />
               </button>
             ) : (
@@ -293,45 +289,127 @@ export const Navbar: React.FC = () => {
               </button>
             )}
 
-            {/* Role Switcher Dropdown (for testing and multi-role operations) */}
-            <div className="relative">
+            {/* Notifications Bell (Authenticated Users) */}
+            {isAuthenticated && (
+              <div className="relative">
+                <button
+                  onClick={() => setNotifOpen(prev => !prev)}
+                  aria-label="Notifications"
+                  className="relative p-2 rounded-xl text-[#788394] hover:text-[#243B55] dark:hover:text-white bg-[#F8F5EF] dark:bg-[#1A2636] border border-[#EFE7DE] dark:border-[#273A52] transition-colors cursor-pointer"
+                >
+                  <Bell size={15} />
+                  {unreadCount > 0 && (
+                    <span className="absolute -top-1 -right-1 min-w-[16px] h-4 px-1 rounded-full bg-[#E98F83] text-white text-[9px] font-bold flex items-center justify-center">
+                      {unreadCount}
+                    </span>
+                  )}
+                </button>
+
+                {notifOpen && (
+                  <div className="absolute right-0 top-full mt-1.5 w-80 bg-white dark:bg-[#152232] border border-[#EFE7DE] dark:border-[#273A52] rounded-2xl shadow-xl p-3 z-50 space-y-2.5">
+                    <div className="flex items-center justify-between px-1">
+                      <span className="text-xs font-bold text-[#243B55] dark:text-white">
+                        Notifications ({unreadCount} unread)
+                      </span>
+                      {unreadCount > 0 && (
+                        <button
+                          onClick={() => markAllNotificationsRead()}
+                          className="text-[11px] font-semibold text-[#E98F83] hover:underline flex items-center gap-1 cursor-pointer"
+                        >
+                          <CheckCheck size={12} />
+                          <span>Mark all read</span>
+                        </button>
+                      )}
+                    </div>
+
+                    <div className="max-h-64 overflow-y-auto space-y-1.5">
+                      {notifications.length === 0 ? (
+                        <div className="p-4 text-center text-xs text-[#788394]">No notifications yet.</div>
+                      ) : (
+                        notifications.slice(0, 8).map(n => (
+                          <div
+                            key={n.id}
+                            onClick={() => {
+                              if (!n.isRead) markNotificationRead(n.id);
+                            }}
+                            className={`p-2.5 rounded-xl border text-xs cursor-pointer transition-colors ${
+                              n.isRead
+                                ? 'bg-[#F8F5EF]/50 dark:bg-[#111A26] border-[#EFE7DE] dark:border-[#273A52] opacity-75'
+                                : 'bg-[#F8E8E3]/50 dark:bg-[#2C1C1A]/50 border-[#E98F83]/40'
+                            }`}
+                          >
+                            <div className="flex items-center justify-between gap-2">
+                              <span className="font-bold text-[#243B55] dark:text-white truncate">
+                                {n.title}
+                              </span>
+                              <span className="text-[9px] font-mono text-[#788394] shrink-0">
+                                {n.category}
+                              </span>
+                            </div>
+                            <p className="text-[11px] text-[#788394] dark:text-[#94A3B8] mt-0.5 line-clamp-2">
+                              {n.message}
+                            </p>
+                          </div>
+                        ))
+                      )}
+                    </div>
+                  </div>
+                )}
+              </div>
+            )}
+
+            {/* Authenticated Account / Sign In Button */}
+            {isAuthenticated ? (
+              <div className="relative">
+                <button
+                  onClick={() => setRoleDropdownOpen(prev => !prev)}
+                  className="px-2.5 py-1.5 text-xs font-medium rounded-xl bg-[#F8F5EF] dark:bg-[#1A2636] border border-[#EFE7DE] dark:border-[#273A52] text-[#243B55] dark:text-white flex items-center gap-1.5 hover:border-[#E98F83] transition-colors cursor-pointer"
+                >
+                  <span className="font-semibold">{roleBadges[currentUserRole] || currentUserRole}</span>
+                  <ChevronDown size={12} className="opacity-60" />
+                </button>
+
+                {roleDropdownOpen && (
+                  <div className="absolute right-0 top-full mt-1.5 w-64 bg-white dark:bg-[#152232] border border-[#EFE7DE] dark:border-[#273A52] rounded-2xl shadow-xl p-3 z-50 space-y-2.5">
+                    <div className="px-2 py-1 border-b border-[#EFE7DE] dark:border-[#273A52]">
+                      <div className="text-xs font-bold text-[#243B55] dark:text-white truncate">
+                        {currentUserName}
+                      </div>
+                      <div className="text-[11px] text-[#788394] truncate">{user?.email}</div>
+                    </div>
+
+                    <button
+                      onClick={() => {
+                        setRoleDropdownOpen(false);
+                        openAuthModal('signin');
+                      }}
+                      className="w-full text-left px-2.5 py-2 text-xs font-semibold rounded-xl text-[#243B55] dark:text-[#CBD5E1] hover:bg-[#F8F5EF] dark:hover:bg-[#1E2E40] flex items-center gap-2 cursor-pointer"
+                    >
+                      <LogIn size={14} className="text-[#E98F83]" />
+                      <span>Switch Account (Sign In)</span>
+                    </button>
+
+                    <button
+                      onClick={handleSignOut}
+                      className="w-full text-left px-2.5 py-2 text-xs font-semibold rounded-xl text-rose-600 dark:text-rose-400 hover:bg-rose-50 dark:hover:bg-rose-950/40 flex items-center gap-2 cursor-pointer"
+                    >
+                      <LogOut size={14} />
+                      <span>Sign Out</span>
+                    </button>
+                  </div>
+                )}
+              </div>
+            ) : (
               <button
-                onClick={() => setRoleDropdownOpen(prev => !prev)}
-                onBlur={() => setTimeout(() => setRoleDropdownOpen(false), 200)}
-                className="px-2.5 py-1.5 text-xs font-medium rounded-xl bg-[#F8F5EF] dark:bg-[#1A2636] border border-[#EFE7DE] dark:border-[#273A52] text-[#243B55] dark:text-white flex items-center gap-1.5 hover:border-[#E98F83] transition-colors cursor-pointer"
+                onClick={() => openAuthModal('signin')}
+                className="px-3 py-1.5 text-xs font-semibold rounded-xl bg-[#E98F83] hover:bg-[#D87B6F] text-white flex items-center gap-1.5 shadow-xs transition-colors cursor-pointer"
               >
-                <span className="font-semibold">{currentRoleInfo.badge}</span>
-                <ChevronDown size={12} className="opacity-60" />
+                <LogIn size={13} />
+                <span>Sign In</span>
               </button>
+            )}
 
-              {roleDropdownOpen && (
-                <div className="absolute right-0 top-full mt-1.5 w-60 bg-white dark:bg-[#152232] border border-[#EFE7DE] dark:border-[#273A52] rounded-2xl shadow-xl p-2 z-50 animate-in fade-in zoom-in-95 duration-100">
-                  <div className="px-2.5 py-1 text-[10px] font-bold text-[#788394] uppercase tracking-wider">
-                    Switch User Role
-                  </div>
-                  <div className="space-y-1 mt-1">
-                    {roles.map(r => (
-                      <button
-                        key={r.role}
-                        onClick={() => handleRoleSelect(r.role)}
-                        className={`w-full text-left px-2.5 py-2 text-xs rounded-xl flex items-center justify-between transition-colors cursor-pointer ${
-                          currentUserRole === r.role
-                            ? 'bg-[#F8E8E3] dark:bg-[#2C1C1A] text-[#E98F83] font-bold'
-                            : 'text-[#243B55] dark:text-[#CBD5E1] hover:bg-[#F8F5EF] dark:hover:bg-[#1E2E40]'
-                        }`}
-                      >
-                        <span className="truncate">{r.title}</span>
-                        <span className="text-[10px] px-1.5 py-0.2 rounded font-mono bg-black/5 dark:bg-white/10">
-                          {r.badge}
-                        </span>
-                      </button>
-                    ))}
-                  </div>
-                </div>
-              )}
-            </div>
-
-            {/* Seamless Dark / Light Mode Toggle */}
+            {/* Dark / Light Mode Toggle */}
             <button
               onClick={toggleTheme}
               aria-label={theme === 'dark' ? 'Switch to light mode' : 'Switch to dark mode'}
@@ -343,7 +421,7 @@ export const Navbar: React.FC = () => {
             {/* Mobile Hamburger Toggle */}
             <button
               onClick={() => setMobileMenuOpen(prev => !prev)}
-              className="md:hidden p-2 rounded-xl text-[#788394] hover:bg-[#F8F5EF] transition-colors"
+              className="md:hidden p-2 rounded-xl text-[#788394] hover:bg-[#F8F5EF] transition-colors cursor-pointer"
             >
               {mobileMenuOpen ? <X size={18} /> : <Menu size={18} />}
             </button>
@@ -353,22 +431,24 @@ export const Navbar: React.FC = () => {
         {/* Mobile Drawer */}
         {mobileMenuOpen && (
           <div className="md:hidden bg-white dark:bg-[#121D2A] border-b border-[#EFE7DE] dark:border-[#273A52] px-4 py-3 space-y-1">
-            {(isPublicView ? publicNavLinks : proNavLinks).map(link => (
-              <button
-                key={link.view}
-                onClick={() => {
-                  setActiveView(link.view);
-                  setMobileMenuOpen(false);
-                }}
-                className={`w-full text-left px-3 py-2 text-xs font-semibold rounded-xl flex items-center justify-between transition-colors ${
-                  activeView === link.view
-                    ? 'bg-[#F8E8E3] text-[#E98F83]'
-                    : 'text-[#788394] hover:bg-[#F8F5EF]'
-                }`}
-              >
-                <span>{link.label}</span>
-              </button>
-            ))}
+            {(isPublicView ? publicNavLinks : isPatientView ? [{ view: 'patient-portal' as ActiveView, label: 'My Portal' }] : proNavLinks).map(
+              link => (
+                <button
+                  key={link.view}
+                  onClick={() => {
+                    setActiveView(link.view);
+                    setMobileMenuOpen(false);
+                  }}
+                  className={`w-full text-left px-3 py-2 text-xs font-semibold rounded-xl flex items-center justify-between transition-colors ${
+                    activeView === link.view
+                      ? 'bg-[#F8E8E3] text-[#E98F83]'
+                      : 'text-[#788394] hover:bg-[#F8F5EF]'
+                  }`}
+                >
+                  <span>{link.label}</span>
+                </button>
+              )
+            )}
           </div>
         )}
       </header>

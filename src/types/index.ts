@@ -1,12 +1,14 @@
 export type OrganType = 'kidney' | 'liver' | 'heart' | 'lung' | 'pancreas' | 'intestine';
 
-export type UserRole = 
+export type UserRole =
   | 'coordinator'      // Transplant Coordinator (Operational nerve center)
   | 'medical'          // Medical Professional / Transplant Surgeon (Clinical decision-maker)
   | 'hospital'         // Hospital Staff / Administrator
   | 'donor'            // Donor / Family Representative
   | 'recipient'        // Recipient / Candidate
   | 'admin';           // Platform Administrator
+
+export type AccountStatus = 'ACTIVE' | 'SUSPENDED';
 
 export type WorkflowState =
   | 'ORGAN_REGISTERED'
@@ -21,6 +23,21 @@ export type WorkflowState =
   | 'CANCELLED'
   | 'ESCALATED'
   | 'NEEDS_VERIFICATION';
+
+export interface PublicUserAccount {
+  id: string;
+  email: string;
+  displayName: string;
+  role: UserRole;
+  status: AccountStatus;
+  licenseOrBadgeId?: string;
+  hospitalId?: string;
+  linkedDonorId?: string;
+  linkedRecipientId?: string;
+  permissions: string[];
+  createdAt: string;
+  lastLoginAt?: string;
+}
 
 export interface Hospital {
   id: string;
@@ -49,6 +66,7 @@ export interface DonorOrganConsent {
 
 export interface Donor {
   id: string;
+  ownerUserId?: string;
   anonymizedCode: string;
   age: number;
   gender: 'M' | 'F' | 'OTHER';
@@ -67,6 +85,7 @@ export interface Donor {
 
 export interface Recipient {
   id: string;
+  ownerUserId?: string;
   anonymizedCode: string;
   age: number;
   gender: 'M' | 'F' | 'OTHER';
@@ -75,8 +94,8 @@ export interface Recipient {
   organType: OrganType;
   hospitalId: string;
   hospitalName: string;
-  urgencyScore: number;          // MELD (6-40), KDPI (0-100), Status (1-3)
-  urgencyMetricName: string;     // 'MELD Score', 'EPTS Score', 'Urgency Status'
+  urgencyScore: number;
+  urgencyMetricName: string;
   waitlistDays: number;
   distanceKm: number;
   medicalVerificationStatus: 'VERIFIED' | 'PENDING' | 'ACTION_REQUIRED';
@@ -283,6 +302,15 @@ export interface AuditEvent {
   isTampered?: boolean;
 }
 
+export interface VerificationResult {
+  isValid: boolean;
+  totalVerified: number;
+  brokenIndex?: number;
+  failureReason?: string;
+  expectedHash?: string;
+  actualHash?: string;
+}
+
 export interface RecoveryLabRecord {
   markerName: string;
   value: string;
@@ -293,6 +321,7 @@ export interface RecoveryLabRecord {
 
 export interface RecoveryRecord {
   id: string;
+  ownerUserId?: string;
   recipientId: string;
   recipientCode: string;
   organType: OrganType;
@@ -331,11 +360,45 @@ export interface FairnessMetric {
     candidateCount: number;
     allocationPercent: number;
     avgWaitlistDays: number;
-    isSuppressed: boolean; // privacy protection if count < threshold
+    isSuppressed: boolean;
   }[];
   regionalParity: {
     regionName: string;
     shareOfRegistrations: number;
     shareOfAllocations: number;
   }[];
+}
+
+export interface NotificationItem {
+  id: string;
+  userId?: string;
+  targetRole?: UserRole;
+  category: 'APPROVAL' | 'CONSENT' | 'LOGISTICS' | 'DATA_QUALITY' | 'ADMIN' | 'RECOVERY';
+  title: string;
+  message: string;
+  relatedEntityId?: string;
+  isRead: boolean;
+  createdAt: string;
+  deliveryChannel: 'IN_APP' | 'IN_APP_AND_EMAIL_HOOK';
+}
+
+export interface SimulationRecord {
+  id: string;
+  actorId: string;
+  actorName: string;
+  organType: OrganType;
+  candidateAId: string;
+  candidateACode: string;
+  candidateBId: string;
+  candidateBCode: string;
+  weightsUsed: {
+    compatibility: number;
+    urgency: number;
+    waitingTime: number;
+    transportFeasibility: number;
+  };
+  scoreA: { total: number; compat: number; urgency: number; wait: number; logistics: number };
+  scoreB: { total: number; compat: number; urgency: number; wait: number; logistics: number };
+  recommendedSide: 'A' | 'B' | 'TIE';
+  createdAt: string;
 }

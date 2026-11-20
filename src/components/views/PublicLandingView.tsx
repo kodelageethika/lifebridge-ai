@@ -19,7 +19,7 @@ import {
 } from 'lucide-react';
 
 export const PublicLandingView: React.FC = () => {
-  const { setActiveView, registerDonorPledge, setCurrentUserRole } = useApp();
+  const { setActiveView, registerDonorPledge } = useApp();
 
   // Registration Modal State
   const [showPledgeModal, setShowPledgeModal] = useState(false);
