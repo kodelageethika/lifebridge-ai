@@ -25,7 +25,8 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: "22"
-      - run: npm install
+          cache: "npm"
+      - run: npm ci
       - name: Type-Check & Build Production Frontend (Zero Server Secrets)
         env:
           VITE_BASE_PATH: "/lifebridge-ai/"
