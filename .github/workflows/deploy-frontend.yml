@@ -1,8 +1,10 @@
+
 name: Deploy Frontend to GitHub Pages
 
 on:
   push:
-    branches: [main]
+    branches:
+      - main
   workflow_dispatch:
 
 permissions:
@@ -19,15 +21,23 @@ jobs:
     environment:
       name: github-pages
       url: ${{ steps.deployment.outputs.page_url }}
+
     runs-on: ubuntu-latest
+
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
         with:
           node-version: "22"
-          cache: "npm"
-      - run: npm ci
-      - name: Type-Check & Build Production Frontend (Zero Server Secrets)
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Type-Check and Build Production Frontend
         env:
           VITE_BASE_PATH: "/lifebridge-ai/"
           VITE_API_BASE_URL: ${{ vars.VITE_API_BASE_URL }}
@@ -35,8 +45,15 @@ jobs:
           npm run lint
           npm run build
           cp dist/index.html dist/404.html
-      - uses: actions/upload-pages-artifact@v3
+
+      - name: Configure GitHub Pages
+        uses: actions/configure-pages@v5
+
+      - name: Upload GitHub Pages artifact
+        uses: actions/upload-pages-artifact@v3
         with:
-          path: dist
-      - id: deployment
+          path: ./dist
+
+      - name: Deploy to GitHub Pages
+        id: deployment
         uses: actions/deploy-pages@v4
