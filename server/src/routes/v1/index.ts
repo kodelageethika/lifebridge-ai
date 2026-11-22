@@ -16,39 +16,51 @@ import {
   handleCreateDonor,
   handleCreateRecipient,
   handleGetFairness,
+  handleGetPortalRecommendations,
   handleListAudit,
   handleListConfigs,
+  handleListCoordinationRecords,
   handleListDonors,
+  handleListHospitalParticipants,
   handleListHospitals,
   handleListLogistics,
   handleListMatchRuns,
+  handleListMedicalProfiles,
   handleListNotifications,
+  handleListOpportunities,
   handleListRecipients,
   handleListRecovery,
   handleListSimulations,
   handleListWorkflows,
   handleMarkAllNotificationsRead,
   handleMarkNotificationRead,
+  handlePostOrganOpportunity,
   handlePublicBootstrap,
   handlePublicPledge,
   handlePublishConfig,
   handleRecordCustodyHandover,
+  handleRegisterHospital,
   handleReinstateConsent,
   handleResolveDataQualityIssue,
   handleResolveEscalation,
   handleRestoreAudit,
+  handleReviewHospitalRegistrationAdmin,
   handleRunMatch,
   handleRunSimulation,
   handleSubmitApprovalDecision,
+  handleSubmitCoordinationRecord,
   handleTamperAudit,
   handleToggleHospitalReadiness,
   handleToggleOrganConsent,
   handleTransitionWorkflow,
   handleTriggerEscalation,
+  handleUpdateCoordinationRecordStatusByHospital,
   handleUpdateRecipient,
   handleUpdateRecovery,
+  handleUploadMedicalProfilePdf,
   handleVerifyAudit,
   handleWithdrawConsent,
+  handleWithdrawCoordinationRecord,
 } from '../../controllers/clinicalController.ts';
 import {
   checkLoginThrottle,
@@ -66,6 +78,7 @@ import {
   handleAiRecipientSummary,
 } from '../../controllers/aiController.ts';
 import {
+  AdminReviewHospitalSchema,
   AdminUserStatusSchema,
   AiClinicalSummarySchema,
   AiFairnessInsightsSchema,
@@ -74,19 +87,23 @@ import {
   AiRecipientSummarySchema,
   ConfirmPasswordResetSchema,
   CreateDonorSchema,
+  CreateOrganOpportunitySchema,
   CreateRecipientSchema,
   CustodyHandoverSchema,
   EmergencyEscalationSchema,
   FirebaseExchangeSchema,
+  HospitalUpdateCoordinationStatusSchema,
   LoginSchema,
   PublicPledgeSchema,
   PublishConfigSchema,
+  RegisterHospitalFacilitySchema,
   RegisterSchema,
   RequestPasswordResetSchema,
   ResolveEscalationSchema,
   RunMatchSchema,
   RunSimulationSchema,
   SubmitApprovalSchema,
+  SubmitCoordinationRecordSchema,
   TamperAuditSchema,
   ToggleHospitalReadinessSchema,
   ToggleOrganConsentSchema,
@@ -94,7 +111,9 @@ import {
   UpdateProfileSchema,
   UpdateRecipientVerificationSchema,
   UpdateRecoverySchema,
+  UploadMedicalProfileSchema,
   WithdrawConsentSchema,
+  WithdrawCoordinationRecordSchema,
 } from '../../validators/schemas.ts';
 
 export const v1Router = Router();
@@ -109,7 +128,7 @@ v1Router.patch('/auth/profile', requireAuth, validateBody(UpdateProfileSchema), 
 v1Router.post('/auth/password-reset/request', validateBody(RequestPasswordResetSchema), handleRequestPasswordReset);
 v1Router.post('/auth/password-reset/confirm', validateBody(ConfirmPasswordResetSchema), handleConfirmPasswordReset);
 
-// Admin User Governance
+// Admin User & Hospital Governance
 v1Router.get('/admin/users', requireAuth, requireRole('admin'), handleListUsersAdmin);
 v1Router.patch(
   '/admin/users/:id/status',
@@ -117,6 +136,13 @@ v1Router.patch(
   requireRole('admin'),
   validateBody(AdminUserStatusSchema),
   handleUpdateUserStatusAdmin
+);
+v1Router.patch(
+  '/admin/hospitals/:id/status',
+  requireAuth,
+  requireRole('admin'),
+  validateBody(AdminReviewHospitalSchema),
+  handleReviewHospitalRegistrationAdmin
 );
 
 // Bootstrap Endpoints
@@ -238,14 +264,71 @@ v1Router.post(
   handleResolveEscalation
 );
 
-// Hospitals
+// Hospitals & Approved Hospital Activities
 v1Router.get('/hospitals', requireAuth, handleListHospitals);
+v1Router.post(
+  '/hospitals/register',
+  optionalAuth,
+  validateBody(RegisterHospitalFacilitySchema),
+  handleRegisterHospital
+);
+v1Router.get('/hospitals/opportunities', requireAuth, handleListOpportunities);
+v1Router.post(
+  '/hospitals/opportunities',
+  requireAuth,
+  requirePermission('MANAGE_HOSPITAL_READINESS'),
+  validateBody(CreateOrganOpportunitySchema),
+  handlePostOrganOpportunity
+);
+v1Router.get(
+  '/hospitals/participants',
+  requireAuth,
+  requirePermission('MANAGE_HOSPITAL_READINESS'),
+  handleListHospitalParticipants
+);
+v1Router.patch(
+  '/hospitals/coordination-records/:id/status',
+  requireAuth,
+  requirePermission('MANAGE_HOSPITAL_READINESS'),
+  validateBody(HospitalUpdateCoordinationStatusSchema),
+  handleUpdateCoordinationRecordStatusByHospital
+);
 v1Router.patch(
   '/hospitals/:id/readiness',
   requireAuth,
   requirePermission('MANAGE_HOSPITAL_READINESS'),
   validateBody(ToggleHospitalReadinessSchema),
   handleToggleHospitalReadiness
+);
+
+// Donor/Recipient End-to-End Case Coordination Portal
+v1Router.get('/portal/medical-profiles', requireAuth, handleListMedicalProfiles);
+v1Router.post(
+  '/portal/medical-profile',
+  requireAuth,
+  requireRole('donor', 'recipient'),
+  validateBody(UploadMedicalProfileSchema),
+  handleUploadMedicalProfilePdf
+);
+v1Router.get(
+  '/portal/recommendations',
+  requireAuth,
+  requireRole('donor', 'recipient'),
+  handleGetPortalRecommendations
+);
+v1Router.get('/portal/coordination-records', requireAuth, handleListCoordinationRecords);
+v1Router.post(
+  '/portal/coordination-records',
+  requireAuth,
+  requireRole('donor', 'recipient'),
+  validateBody(SubmitCoordinationRecordSchema),
+  handleSubmitCoordinationRecord
+);
+v1Router.post(
+  '/portal/coordination-records/:id/withdraw',
+  requireAuth,
+  validateBody(WithdrawCoordinationRecordSchema),
+  handleWithdrawCoordinationRecord
 );
 
 // Recovery Tracking

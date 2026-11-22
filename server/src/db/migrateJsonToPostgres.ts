@@ -56,6 +56,9 @@ const JsonDatasetValidationSchema = z.object({
   ),
   notifications: z.array(z.object({ id: z.string().min(1) }).passthrough()),
   simulations: z.array(z.object({ id: z.string().min(1) }).passthrough()),
+  medicalProfiles: z.array(z.object({ id: z.string().min(1) }).passthrough()).optional(),
+  organOpportunities: z.array(z.object({ id: z.string().min(1) }).passthrough()).optional(),
+  coordinationRecords: z.array(z.object({ id: z.string().min(1) }).passthrough()).optional(),
 }).passthrough();
 
 export interface MigrationReport {
@@ -83,6 +86,9 @@ export interface MigrationReport {
     auditEvents: number;
     notifications: number;
     simulations: number;
+    medicalProfiles: number;
+    organOpportunities: number;
+    coordinationRecords: number;
   };
   auditSequenceVerifiedOrdered: boolean;
   timestamp: string;
@@ -156,6 +162,9 @@ export async function runJsonToPostgresMigration(options: {
     auditEvents: parsed.auditTrail.length,
     notifications: parsed.notifications.length,
     simulations: parsed.simulations.length,
+    medicalProfiles: parsed.medicalProfiles?.length || 0,
+    organOpportunities: parsed.organOpportunities?.length || 0,
+    coordinationRecords: parsed.coordinationRecords?.length || 0,
   };
 
   if (!options.dryRun) {

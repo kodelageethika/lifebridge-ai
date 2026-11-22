@@ -49,6 +49,22 @@ import {
   submitApprovalDecision,
   transitionWorkflowCaseState,
 } from '../services/workflowService.ts';
+import {
+  listMedicalProfilesForActor,
+  uploadAndProcessMedicalProfilePdf,
+} from '../services/pdfProfileService.ts';
+import {
+  getPortalRecommendationsForActor,
+  listCoordinationRecordsForActor,
+  listHospitalParticipantsForActor,
+  listOrganOpportunitiesForActor,
+  postOrganOpportunityByHospital,
+  registerHospitalFacility,
+  reviewHospitalRegistrationByAdmin,
+  submitCaseCoordinationRecord,
+  updateCoordinationRecordStatusByHospital,
+  withdrawCaseCoordinationRecord,
+} from '../services/coordinationPortalService.ts';
 
 export async function handlePublicBootstrap(_req: Request, res: Response, next: NextFunction) {
   try {
@@ -70,6 +86,7 @@ export async function handleBootstrap(req: Request, res: Response, next: NextFun
     const actor = req.user!;
     const db = await readDb();
     const isClinical = actor.permissions.includes('VIEW_CLINICAL_OVERVIEW');
+    const isPortalUser = actor.role === 'donor' || actor.role === 'recipient';
 
     const [
       donors,
@@ -77,12 +94,20 @@ export async function handleBootstrap(req: Request, res: Response, next: NextFun
       recoveryRecords,
       notifications,
       fairnessMetrics,
+      medicalProfiles,
+      organOpportunities,
+      coordinationRecords,
+      portalMatching,
     ] = await Promise.all([
       listDonorsForActor(actor),
       listRecipientsForActor(actor),
       listRecoveryRecordsForActor(actor),
       listUserNotifications(actor),
       isClinical ? computeFairnessMetrics() : Promise.resolve([]),
+      listMedicalProfilesForActor(actor),
+      listOrganOpportunitiesForActor(actor),
+      listCoordinationRecordsForActor(actor),
+      isPortalUser ? getPortalRecommendationsForActor(actor) : Promise.resolve(null),
     ]);
 
     ok(res, {
@@ -101,6 +126,10 @@ export async function handleBootstrap(req: Request, res: Response, next: NextFun
       auditTrail: actor.permissions.includes('VIEW_AUDIT') ? db.auditTrail : [],
       notifications,
       simulations: isClinical ? db.simulations : [],
+      medicalProfiles,
+      organOpportunities,
+      coordinationRecords,
+      portalRecommendations: portalMatching?.recommendations || [],
     });
   } catch (err) {
     next(err);
@@ -472,3 +501,134 @@ export async function handleMarkAllNotificationsRead(req: Request, res: Response
     next(err);
   }
 }
+
+// End-to-End Portal Medical Profile, Recommendations & Coordination Records
+export async function handleUploadMedicalProfilePdf(req: Request, res: Response, next: NextFunction) {
+  try {
+    const medicalProfile = await uploadAndProcessMedicalProfilePdf(req.body, req.user!);
+    ok(res, { medicalProfile }, 201);
+  } catch (err) {
+    next(err);
+  }
+}
+
+export async function handleListMedicalProfiles(req: Request, res: Response, next: NextFunction) {
+  try {
+    const medicalProfiles = await listMedicalProfilesForActor(req.user!);
+    ok(res, { medicalProfiles });
+  } catch (err) {
+    next(err);
+  }
+}
+
+export async function handleGetPortalRecommendations(req: Request, res: Response, next: NextFunction) {
+  try {
+    const result = await getPortalRecommendationsForActor(req.user!);
+    ok(res, result);
+  } catch (err) {
+    next(err);
+  }
+}
+
+export async function handleListCoordinationRecords(req: Request, res: Response, next: NextFunction) {
+  try {
+    const coordinationRecords = await listCoordinationRecordsForActor(req.user!);
+    ok(res, { coordinationRecords });
+  } catch (err) {
+    next(err);
+  }
+}
+
+export async function handleSubmitCoordinationRecord(req: Request, res: Response, next: NextFunction) {
+  try {
+    const coordinationRecord = await submitCaseCoordinationRecord(req.body, req.user!);
+    ok(res, { coordinationRecord }, 201);
+  } catch (err) {
+    next(err);
+  }
+}
+
+export async function handleWithdrawCoordinationRecord(req: Request, res: Response, next: NextFunction) {
+  try {
+    const coordinationRecord = await withdrawCaseCoordinationRecord(
+      String(req.params.id),
+      req.body.reason,
+      req.user!
+    );
+    ok(res, { coordinationRecord });
+  } catch (err) {
+    next(err);
+  }
+}
+
+// Hospital Registration, Opportunities, Participants & Record Management
+export async function handleRegisterHospital(req: Request, res: Response, next: NextFunction) {
+  try {
+    const result = await registerHospitalFacility(req.body, req.user);
+    ok(res, result, 201);
+  } catch (err) {
+    next(err);
+  }
+}
+
+export async function handleListOpportunities(req: Request, res: Response, next: NextFunction) {
+  try {
+    const organOpportunities = await listOrganOpportunitiesForActor(req.user);
+    ok(res, { organOpportunities });
+  } catch (err) {
+    next(err);
+  }
+}
+
+export async function handlePostOrganOpportunity(req: Request, res: Response, next: NextFunction) {
+  try {
+    const organOpportunity = await postOrganOpportunityByHospital(req.body, req.user!);
+    ok(res, { organOpportunity }, 201);
+  } catch (err) {
+    next(err);
+  }
+}
+
+export async function handleListHospitalParticipants(req: Request, res: Response, next: NextFunction) {
+  try {
+    const result = await listHospitalParticipantsForActor(req.user!);
+    ok(res, result);
+  } catch (err) {
+    next(err);
+  }
+}
+
+export async function handleUpdateCoordinationRecordStatusByHospital(
+  req: Request,
+  res: Response,
+  next: NextFunction
+) {
+  try {
+    const coordinationRecord = await updateCoordinationRecordStatusByHospital(
+      String(req.params.id),
+      req.body,
+      req.user!
+    );
+    ok(res, { coordinationRecord });
+  } catch (err) {
+    next(err);
+  }
+}
+
+export async function handleReviewHospitalRegistrationAdmin(
+  req: Request,
+  res: Response,
+  next: NextFunction
+) {
+  try {
+    const hospital = await reviewHospitalRegistrationByAdmin(
+      String(req.params.id),
+      req.body,
+      req.user!
+    );
+    ok(res, { hospital });
+  } catch (err) {
+    next(err);
+  }
+}
+

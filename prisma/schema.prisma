@@ -95,16 +95,25 @@ model PasswordResetToken {
 }
 
 model Hospital {
-  id           String               @id
-  name         String
-  city         String
-  state        String
-  tier         String
-  capabilities HospitalCapability[]
-  users        User[]
-  donors       Donor[]
-  recipients   Recipient[]
-  organs       OrganRecord[]
+  id                 String               @id
+  name               String
+  city               String
+  state              String
+  tier               String
+  registrationStatus String               @default("APPROVED")
+  licenseNumber      String?
+  contactEmail       String?
+  registeredAt       DateTime?
+  reviewedBy         String?
+  reviewedAt         DateTime?
+  reviewRemarks      String?
+  capabilities       HospitalCapability[]
+  users              User[]
+  donors             Donor[]
+  recipients         Recipient[]
+  organs             OrganRecord[]
+  opportunities      OrganOpportunity[]
+  coordinationCases  CaseCoordinationRecord[]
 }
 
 model HospitalCapability {
@@ -411,3 +420,71 @@ model SimulationRecord {
 
   @@index([organType, createdAt])
 }
+
+model MedicalProfile {
+  id             String   @id
+  userId         String
+  ownerRole      String
+  linkedEntityId String?
+  fileName       String
+  fileSizeBytes  Int
+  uploadedAt     DateTime @default(now())
+  extractedText  String
+  compatibility  Json
+
+  @@index([userId, uploadedAt])
+}
+
+model OrganOpportunity {
+  id                      String                   @id
+  hospitalId              String
+  hospital                Hospital                 @relation(fields: [hospitalId], references: [id])
+  hospitalName            String
+  organType               OrganType
+  title                   String
+  bloodGroup              String
+  tissueHLA               String
+  preservationWindowHours Float
+  minUrgencyScore         Float?
+  clinicalRequirements    String
+  status                  String                   @default("OPEN")
+  postedByUserId          String
+  postedByName            String
+  createdAt               DateTime                 @default(now())
+  updatedAt               DateTime                 @updatedAt
+  coordinationRecords     CaseCoordinationRecord[]
+
+  @@index([status, organType])
+  @@index([hospitalId])
+}
+
+model CaseCoordinationRecord {
+  id                   String           @id
+  recordNumber         String           @unique
+  applicantUserId      String
+  applicantRole        String
+  applicantName        String
+  applicantCode        String?
+  medicalProfileId     String?
+  opportunityId        String
+  opportunity          OrganOpportunity @relation(fields: [opportunityId], references: [id])
+  opportunityTitle     String
+  organType            OrganType
+  hospitalId           String
+  hospital             Hospital         @relation(fields: [hospitalId], references: [id])
+  hospitalName         String
+  compatibilityScore   Float
+  compatibilitySummary String
+  notes                String
+  status               String           @default("SUBMITTED")
+  hospitalRemarks      String?
+  withdrawnReason      String?
+  reviewedBy           String?
+  createdAt            DateTime         @default(now())
+  updatedAt            DateTime         @updatedAt
+  history              Json
+
+  @@index([applicantUserId, status])
+  @@index([hospitalId, status])
+}
+

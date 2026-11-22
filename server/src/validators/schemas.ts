@@ -202,3 +202,52 @@ export const AiGeneralAssistantSchema = z.object({
   contextView: z.string().trim().max(60).optional(),
 });
 
+// End-to-End 9-Step Organ Coordination Portal Schemas
+export const UploadMedicalProfileSchema = z.object({
+  fileName: z.string().trim().min(3).max(180),
+  pdfBase64: z.string().min(16).max(7_500_000),
+});
+
+export const SubmitCoordinationRecordSchema = z.object({
+  opportunityId: z.string().trim().min(3).max(80),
+  notes: z.string().trim().max(1000).default('Requesting transplant coordination review.'),
+});
+
+export const WithdrawCoordinationRecordSchema = z.object({
+  reason: z.string().trim().min(4, 'Withdrawal reason must be at least 4 characters').max(500),
+});
+
+export const RegisterHospitalFacilitySchema = z.object({
+  name: z.string().trim().min(3).max(160),
+  city: z.string().trim().min(2).max(80),
+  state: z.string().trim().min(2).max(80),
+  tier: z.enum(['TIER_1_TRAUMA', 'TRANSPLANT_CENTER', 'REGIONAL_HOSPITAL']).default('TRANSPLANT_CENTER'),
+  licenseNumber: z.string().trim().min(4).max(60),
+  contactEmail: z.string().trim().email().max(200),
+  organsSupported: z.array(OrganTypeSchema).min(1).max(6).default(['kidney', 'liver']),
+  adminDisplayName: z.string().trim().min(2).max(120).optional(),
+  adminPassword: z.string().min(8).max(128).optional(),
+});
+
+export const CreateOrganOpportunitySchema = z.object({
+  hospitalId: z.string().trim().min(3).max(60).optional(),
+  organType: OrganTypeSchema,
+  title: z.string().trim().min(4).max(180),
+  bloodGroup: BloodGroupSchema,
+  tissueHLA: z.string().trim().min(3).max(140),
+  preservationWindowHours: z.coerce.number().min(1).max(72).default(24),
+  minUrgencyScore: z.coerce.number().min(1).max(100).optional(),
+  clinicalRequirements: z.string().trim().min(4).max(600),
+});
+
+export const HospitalUpdateCoordinationStatusSchema = z.object({
+  status: z.enum(['UNDER_HOSPITAL_REVIEW', 'APPROVED', 'REJECTED']),
+  remarks: z.string().trim().max(600).optional(),
+});
+
+export const AdminReviewHospitalSchema = z.object({
+  status: z.enum(['APPROVED', 'REJECTED']),
+  remarks: z.string().trim().max(600).optional(),
+});
+
+

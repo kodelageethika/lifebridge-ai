@@ -41,6 +41,20 @@ export class JsonFileRepository implements DatabaseRepository {
       try {
         const raw = fs.readFileSync(filePath, 'utf8');
         const parsed = JSON.parse(raw) as DatabaseState;
+        parsed.hospitals = (parsed.hospitals || []).map(h => ({
+          ...h,
+          registrationStatus: h.registrationStatus || 'APPROVED',
+        }));
+        if (!Array.isArray(parsed.organOpportunities)) {
+          const seedDefaults = buildSeedDatabase();
+          parsed.organOpportunities = seedDefaults.organOpportunities;
+          const pendingSeedHosp = seedDefaults.hospitals.find(h => h.id === 'HOSP-05');
+          if (pendingSeedHosp && !parsed.hospitals.some(h => h.id === 'HOSP-05')) {
+            parsed.hospitals.push(pendingSeedHosp);
+          }
+        }
+        parsed.medicalProfiles ??= [];
+        parsed.coordinationRecords ??= [];
         this.cachedDb = parsed;
         return parsed;
       } catch (err) {

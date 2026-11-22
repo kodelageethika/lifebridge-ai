@@ -10,8 +10,8 @@
       "licenseOrBadgeId": "TC-402",
       "hospitalId": "HOSP-01",
       "createdAt": "2026-01-10T08:00:00Z",
-      "updatedAt": "2026-11-20T19:10:18.942Z",
-      "lastLoginAt": "2026-11-20T19:10:18.942Z"
+      "updatedAt": "2026-11-22T06:05:42.351Z",
+      "lastLoginAt": "2026-11-22T06:05:42.351Z"
     },
     {
       "id": "USR-MED-01",
@@ -61,8 +61,8 @@
       "linkedRecipientId": "REC-K01",
       "hospitalId": "HOSP-01",
       "createdAt": "2026-01-10T08:00:00Z",
-      "updatedAt": "2026-11-20T19:10:19.423Z",
-      "lastLoginAt": "2026-11-20T19:10:19.423Z"
+      "updatedAt": "2026-11-22T11:36:33.470Z",
+      "lastLoginAt": "2026-11-22T11:36:33.470Z"
     },
     {
       "id": "USR-ADMIN-01",
@@ -79,156 +79,20 @@
   ],
   "sessions": [
     {
-      "id": "SESS-1795199705876-646",
-      "tokenHash": "c82cb8021ef2980d786726e0c3dc4c70cfc9c5ab46ebe9f881e9dc18d8f97715",
+      "id": "SESS-1795327542351-198",
+      "tokenHash": "eee5b7f2053c2582f0228dcbe9dbc0ec16df5ca2b3ac04a5f0c14f7e9f307784",
       "userId": "USR-COORD-01",
       "role": "coordinator",
-      "createdAt": "2026-11-20T18:35:05.876Z",
-      "expiresAt": "2026-11-21T18:35:05.876Z"
+      "createdAt": "2026-11-22T06:05:42.351Z",
+      "expiresAt": "2026-11-23T06:05:42.351Z"
     },
     {
-      "id": "SESS-1795199706024-435",
-      "tokenHash": "3b28617c4eb79335022d6ccfc4153aee78ce4f8b38b30b2e90c49eb5f619b52a",
-      "userId": "USR-DONOR-01",
-      "role": "donor",
-      "createdAt": "2026-11-20T18:35:06.024Z",
-      "expiresAt": "2026-11-21T18:35:06.024Z"
-    },
-    {
-      "id": "SESS-1795200844930-901",
-      "tokenHash": "104bb0fd400a9a090bcec88185bed11186ed03810717bde8b52a8ce61e172e71",
-      "userId": "USR-COORD-01",
-      "role": "coordinator",
-      "createdAt": "2026-11-20T18:54:04.930Z",
-      "expiresAt": "2026-11-21T18:54:04.930Z"
-    },
-    {
-      "id": "SESS-1795200845068-769",
-      "tokenHash": "2abe2be2c6ac932577f49dc112fc3891ec434e9df78136cc694ec7ff9407fdbc",
-      "userId": "USR-DONOR-01",
-      "role": "donor",
-      "createdAt": "2026-11-20T18:54:05.068Z",
-      "expiresAt": "2026-11-21T18:54:05.068Z"
-    },
-    {
-      "id": "SESS-1795200845220-665",
-      "tokenHash": "940f2d6e77ed8e88e6e4441f0a14257f76aa22c84edcd44b13c46d5749ec64e3",
+      "id": "SESS-1795347393470-393",
+      "tokenHash": "b271cf7dd9c8ff9af97ce085351f11403dfa19f4618d5e77688b85fcc110527d",
       "userId": "USR-RECIP-01",
       "role": "recipient",
-      "createdAt": "2026-11-20T18:54:05.220Z",
-      "expiresAt": "2026-11-21T18:54:05.220Z"
-    },
-    {
-      "id": "SESS-1795200901825-541",
-      "tokenHash": "5f396dc49bcf70cb0f004e7963efa50366f26d407338367919063013b1f85ec4",
-      "userId": "USR-COORD-01",
-      "role": "coordinator",
-      "createdAt": "2026-11-20T18:55:01.825Z",
-      "expiresAt": "2026-11-21T18:55:01.825Z"
-    },
-    {
-      "id": "SESS-1795200901968-942",
-      "tokenHash": "8c362e5fc40715a7348b0a9d2c1cc81809392bef8d476bf515eeba8dc83f304b",
-      "userId": "USR-RECIP-01",
-      "role": "recipient",
-      "createdAt": "2026-11-20T18:55:01.968Z",
-      "expiresAt": "2026-11-21T18:55:01.968Z"
-    },
-    {
-      "id": "SESS-1795201167663-911",
-      "tokenHash": "5673d6b68689ffb40b893c733f053cda13a15c0a5c915d147933287a8d24d0a8",
-      "userId": "USR-COORD-01",
-      "role": "coordinator",
-      "createdAt": "2026-11-20T18:59:27.663Z",
-      "expiresAt": "2026-11-21T18:59:27.663Z"
-    },
-    {
-      "id": "SESS-1795201167775-109",
-      "tokenHash": "0586ce0ab679e44388b614085d2987c0bc002fc442e5cb111439ea0b002b8500",
-      "userId": "USR-RECIP-01",
-      "role": "recipient",
-      "createdAt": "2026-11-20T18:59:27.775Z",
-      "expiresAt": "2026-11-21T18:59:27.775Z"
-    },
-    {
-      "id": "SESS-1795201167885-470",
-      "tokenHash": "adb7cece063145a8fe9756c4756e0862ba2885a7f2096a90ff80be59b646282c",
-      "userId": "USR-DONOR-01",
-      "role": "donor",
-      "createdAt": "2026-11-20T18:59:27.885Z",
-      "expiresAt": "2026-11-21T18:59:27.885Z"
-    },
-    {
-      "id": "SESS-1795201278400-651",
-      "tokenHash": "660707d10a0f31c0d32f2876605893d3648c9e7993d0eb99deadc8ac43f54697",
-      "userId": "USR-COORD-01",
-      "role": "coordinator",
-      "createdAt": "2026-11-20T19:01:18.400Z",
-      "expiresAt": "2026-11-21T19:01:18.400Z"
-    },
-    {
-      "id": "SESS-1795201288769-156",
-      "tokenHash": "9fd2f8c1e45ddc5e9c3b1268882a528bbfbd3c5d374c25f4ca13febea5d4f435",
-      "userId": "USR-COORD-01",
-      "role": "coordinator",
-      "createdAt": "2026-11-20T19:01:28.769Z",
-      "expiresAt": "2026-11-21T19:01:28.769Z"
-    },
-    {
-      "id": "SESS-1795201349473-654",
-      "tokenHash": "1c4f2b063af7f847ac226332173921fc9850fa3c315648ec2c7cc3ce5fa0bb3a",
-      "userId": "USR-COORD-01",
-      "role": "coordinator",
-      "createdAt": "2026-11-20T19:02:29.473Z",
-      "expiresAt": "2026-11-21T19:02:29.473Z"
-    },
-    {
-      "id": "SESS-1795201435307-946",
-      "tokenHash": "2a98c67b989f1ea7b033e101bb2b0164e37d4cdada6717039e3b1695fbf4adb3",
-      "userId": "USR-COORD-01",
-      "role": "coordinator",
-      "createdAt": "2026-11-20T19:03:55.307Z",
-      "expiresAt": "2026-11-21T19:03:55.307Z"
-    },
-    {
-      "id": "SESS-1795201818942-682",
-      "tokenHash": "e3de288bf40d79f4e14432f61826b8b425e339e6c377bddbf3552aae241234e3",
-      "userId": "USR-COORD-01",
-      "role": "coordinator",
-      "createdAt": "2026-11-20T19:10:18.942Z",
-      "expiresAt": "2026-11-21T19:10:18.942Z"
-    },
-    {
-      "id": "SESS-1795201819074-691",
-      "tokenHash": "c9e5d8deb088fa206f25dba7965753d720115caa3efa6dd891ca5e8c4c19535d",
-      "userId": "USR-MED-01",
-      "role": "medical",
-      "createdAt": "2026-11-20T19:10:19.074Z",
-      "expiresAt": "2026-11-21T19:10:19.074Z"
-    },
-    {
-      "id": "SESS-1795201819186-389",
-      "tokenHash": "ace860e908db732c7dce23c69983288f4344cd5bd93f72b6dea1fdb14a8b2f96",
-      "userId": "USR-HOSP-01",
-      "role": "hospital",
-      "createdAt": "2026-11-20T19:10:19.186Z",
-      "expiresAt": "2026-11-21T19:10:19.186Z"
-    },
-    {
-      "id": "SESS-1795201819423-987",
-      "tokenHash": "18cc4da3ee804e16b9de354719c9bdcc4d96c864fa8b8461958b699a269c5bc3",
-      "userId": "USR-RECIP-01",
-      "role": "recipient",
-      "createdAt": "2026-11-20T19:10:19.423Z",
-      "expiresAt": "2026-11-21T19:10:19.423Z"
-    },
-    {
-      "id": "SESS-1795201819532-514",
-      "tokenHash": "850c97eaf4a617ed25f77bd762c3aa562d44aef4817da6200ecbd02469c13223",
-      "userId": "USR-ADMIN-01",
-      "role": "admin",
-      "createdAt": "2026-11-20T19:10:19.532Z",
-      "expiresAt": "2026-11-21T19:10:19.532Z"
+      "createdAt": "2026-11-22T11:36:33.470Z",
+      "expiresAt": "2026-11-23T11:36:33.470Z"
     }
   ],
   "passwordResets": [],
@@ -404,7 +268,8 @@
           "icuBedAvailable": true,
           "lastVerifiedAt": "2026-11-11T04:00:00Z"
         }
-      ]
+      ],
+      "registrationStatus": "APPROVED"
     },
     {
       "id": "HOSP-02",
@@ -445,7 +310,8 @@
           "icuBedAvailable": true,
           "lastVerifiedAt": "2026-11-11T05:00:00Z"
         }
-      ]
+      ],
+      "registrationStatus": "APPROVED"
     },
     {
       "id": "HOSP-03",
@@ -486,7 +352,8 @@
           "icuBedAvailable": true,
           "lastVerifiedAt": "2026-11-11T05:15:00Z"
         }
-      ]
+      ],
+      "registrationStatus": "APPROVED"
     },
     {
       "id": "HOSP-04",
@@ -518,6 +385,36 @@
           "activeSurgicalTeam": "None",
           "icuBedAvailable": false,
           "lastVerifiedAt": "2026-11-01T00:00:00Z"
+        }
+      ],
+      "registrationStatus": "APPROVED"
+    },
+    {
+      "id": "HOSP-05",
+      "name": "Star Hospitals Multi-Organ Wing",
+      "city": "Banjara Hills, Hyderabad",
+      "state": "Telangana",
+      "tier": "REGIONAL_HOSPITAL",
+      "registrationStatus": "PENDING_APPROVAL",
+      "licenseNumber": "TS-THOTA-2026-089",
+      "contactEmail": "accreditation@star-hyd.demo",
+      "registeredAt": "2026-11-10T11:30:00Z",
+      "capabilities": [
+        {
+          "organType": "kidney",
+          "isCapable": true,
+          "isReady": true,
+          "activeSurgicalTeam": "Dr. Kavitha Renal Unit",
+          "icuBedAvailable": true,
+          "lastVerifiedAt": "2026-11-10T11:30:00Z"
+        },
+        {
+          "organType": "liver",
+          "isCapable": true,
+          "isReady": false,
+          "activeSurgicalTeam": "Pending Board Audit",
+          "icuBedAvailable": false,
+          "lastVerifiedAt": "2026-11-10T11:30:00Z"
         }
       ]
     }
@@ -1915,5 +1812,94 @@
       "recommendedSide": "A",
       "createdAt": "2026-11-20T15:35:05.673Z"
     }
-  ]
+  ],
+  "organOpportunities": [
+    {
+      "id": "OPP-KID-01",
+      "hospitalId": "HOSP-01",
+      "hospitalName": "Apollo Health City (Transplant Wing)",
+      "organType": "kidney",
+      "title": "Renal Transplant Coordination Program — Blood Group O+ Priority",
+      "bloodGroup": "O+",
+      "tissueHLA": "A2, A24, B35, B44, DR4, DR11",
+      "preservationWindowHours": 30,
+      "minUrgencyScore": 60,
+      "clinicalRequirements": "Crossmatch PRA < 20%, recent cardiac clearance, ABO O+ compatible.",
+      "status": "OPEN",
+      "postedByUserId": "USR-HOSP-01",
+      "postedByName": "Admin Rajesh (Apollo Wing)",
+      "createdAt": "2026-11-21T17:36:33.328Z",
+      "updatedAt": "2026-11-21T17:36:33.328Z"
+    },
+    {
+      "id": "OPP-KID-02",
+      "hospitalId": "HOSP-02",
+      "hospitalName": "KIMS Hospitals Institute of Renal Sciences",
+      "organType": "kidney",
+      "title": "Living / Deceased Donor Kidney Matching Cohort (Blood Group A+ / O-)",
+      "bloodGroup": "A+",
+      "tissueHLA": "A1, A3, B7, B8, DR3, DR15",
+      "preservationWindowHours": 24,
+      "minUrgencyScore": 50,
+      "clinicalRequirements": "Verified HLA typing and active nephrology clearance.",
+      "status": "OPEN",
+      "postedByUserId": "USR-HOSP-01",
+      "postedByName": "KIMS Renal Coordination Desk",
+      "createdAt": "2026-11-21T23:36:33.328Z",
+      "updatedAt": "2026-11-21T23:36:33.328Z"
+    },
+    {
+      "id": "OPP-LIV-01",
+      "hospitalId": "HOSP-03",
+      "hospitalName": "Yashoda Super Speciality Hospital",
+      "organType": "liver",
+      "title": "Hepatobiliary Split-Liver Opportunity — Type O+",
+      "bloodGroup": "O+",
+      "tissueHLA": "A2, A24, B35, B44, DR4, DR11",
+      "preservationWindowHours": 12,
+      "minUrgencyScore": 20,
+      "clinicalRequirements": "MELD score documented within 30 days; low steatosis compatibility.",
+      "status": "OPEN",
+      "postedByUserId": "USR-HOSP-01",
+      "postedByName": "Yashoda Transplant Desk",
+      "createdAt": "2026-11-22T03:36:33.328Z",
+      "updatedAt": "2026-11-22T03:36:33.328Z"
+    },
+    {
+      "id": "OPP-HRT-01",
+      "hospitalId": "HOSP-01",
+      "hospitalName": "Apollo Health City (Transplant Wing)",
+      "organType": "heart",
+      "title": "Thoracic Cardiac Allocation — Urgent Status O+",
+      "bloodGroup": "O+",
+      "tissueHLA": "A2, A24, B44, B18, DR4, DR11",
+      "preservationWindowHours": 5,
+      "minUrgencyScore": 70,
+      "clinicalRequirements": "Thoracic Status 1A/1B clearance, echocardiography report uploaded.",
+      "status": "OPEN",
+      "postedByUserId": "USR-HOSP-01",
+      "postedByName": "Admin Rajesh (Apollo Wing)",
+      "createdAt": "2026-11-22T06:36:33.328Z",
+      "updatedAt": "2026-11-22T06:36:33.328Z"
+    },
+    {
+      "id": "OPP-LNG-01",
+      "hospitalId": "HOSP-03",
+      "hospitalName": "Yashoda Super Speciality Hospital",
+      "organType": "lung",
+      "title": "Pulmonary Bilateral Graft Matching Opportunity",
+      "bloodGroup": "O+",
+      "tissueHLA": "A2, A24, B35, B7, DR4, DR11",
+      "preservationWindowHours": 7,
+      "minUrgencyScore": 65,
+      "clinicalRequirements": "Spirometry & bronchoscopy report uploaded in medical profile.",
+      "status": "OPEN",
+      "postedByUserId": "USR-HOSP-01",
+      "postedByName": "Yashoda Thoracic Team",
+      "createdAt": "2026-11-22T07:36:33.328Z",
+      "updatedAt": "2026-11-22T07:36:33.328Z"
+    }
+  ],
+  "medicalProfiles": [],
+  "coordinationRecords": []
 }

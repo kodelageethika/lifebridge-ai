@@ -1,5 +1,5 @@
 import bcrypt from 'bcryptjs';
-import { type AuditEvent, type DataQualityIssue, type DatabaseState, type Donor, type Hospital, type LogisticsCase, type MatchRun, type NotificationRecord, type OrganConfig, type OrganRecord, type Recipient, type RecoveryRecord, type SimulationRecord, type UserAccount, type WorkflowCase } from '../types/index.ts';
+import { type AuditEvent, type CaseCoordinationRecord, type DataQualityIssue, type DatabaseState, type Donor, type Hospital, type LogisticsCase, type MatchRun, type MedicalProfileRecord, type NotificationRecord, type OrganConfig, type OrganOpportunity, type OrganRecord, type Recipient, type RecoveryRecord, type SimulationRecord, type UserAccount, type WorkflowCase } from '../types/index.ts';
 import { computeEventHash, GENESIS_PREV_HASH } from '../utils/crypto.ts';
 
 export function buildSeedDatabase(): DatabaseState {
@@ -178,6 +178,12 @@ export function buildSeedDatabase(): DatabaseState {
       city: 'Hyderabad',
       state: 'Telangana',
       tier: 'TRANSPLANT_CENTER',
+      registrationStatus: 'APPROVED',
+      licenseNumber: 'TS-THOTA-2021-001',
+      contactEmail: 'transplant-ops@apollo-hyd.demo',
+      registeredAt: '2026-01-10T08:00:00Z',
+      reviewedBy: 'Platform Integrity Admin',
+      reviewedAt: '2026-01-10T09:00:00Z',
       capabilities: [
         { organType: 'kidney', isCapable: true, isReady: true, activeSurgicalTeam: 'Team K-Alpha (Dr. Priya & Dr. Raman)', icuBedAvailable: true, lastVerifiedAt: now },
         { organType: 'liver', isCapable: true, isReady: true, activeSurgicalTeam: 'Team L-Beta (Dr. V. Menon)', icuBedAvailable: true, lastVerifiedAt: now },
@@ -193,6 +199,12 @@ export function buildSeedDatabase(): DatabaseState {
       city: 'Secunderabad',
       state: 'Telangana',
       tier: 'TRANSPLANT_CENTER',
+      registrationStatus: 'APPROVED',
+      licenseNumber: 'TS-THOTA-2021-014',
+      contactEmail: 'renal@kims-sec.demo',
+      registeredAt: '2026-01-10T08:00:00Z',
+      reviewedBy: 'Platform Integrity Admin',
+      reviewedAt: '2026-01-10T09:00:00Z',
       capabilities: [
         { organType: 'kidney', isCapable: true, isReady: true, activeSurgicalTeam: 'Renal Team 2 (Dr. A. Sharma)', icuBedAvailable: true, lastVerifiedAt: '2026-11-11T05:45:00Z' },
         { organType: 'liver', isCapable: true, isReady: false, activeSurgicalTeam: 'Hepatobiliary 1', icuBedAvailable: false, lastVerifiedAt: '2026-11-11T03:00:00Z' },
@@ -206,6 +218,12 @@ export function buildSeedDatabase(): DatabaseState {
       city: 'Somajiguda, Hyderabad',
       state: 'Telangana',
       tier: 'TIER_1_TRAUMA',
+      registrationStatus: 'APPROVED',
+      licenseNumber: 'TS-THOTA-2021-022',
+      contactEmail: 'coordination@yashoda-hyd.demo',
+      registeredAt: '2026-01-10T08:00:00Z',
+      reviewedBy: 'Platform Integrity Admin',
+      reviewedAt: '2026-01-10T09:00:00Z',
       capabilities: [
         { organType: 'kidney', isCapable: true, isReady: true, activeSurgicalTeam: 'Dr. Mukherjee Team', icuBedAvailable: true, lastVerifiedAt: '2026-11-11T05:15:00Z' },
         { organType: 'liver', isCapable: true, isReady: true, activeSurgicalTeam: 'Dr. V. Prasad Team', icuBedAvailable: true, lastVerifiedAt: '2026-11-11T05:15:00Z' },
@@ -219,10 +237,31 @@ export function buildSeedDatabase(): DatabaseState {
       city: 'Punjagutta, Hyderabad',
       state: 'Telangana',
       tier: 'TRANSPLANT_CENTER',
+      registrationStatus: 'APPROVED',
+      licenseNumber: 'TS-THOTA-2020-003',
+      contactEmail: 'nodal@nims-hyd.demo',
+      registeredAt: '2026-01-10T08:00:00Z',
+      reviewedBy: 'Platform Integrity Admin',
+      reviewedAt: '2026-01-10T09:00:00Z',
       capabilities: [
         { organType: 'kidney', isCapable: true, isReady: true, activeSurgicalTeam: 'Govt Renal Core (Dr. Laxmi)', icuBedAvailable: true, lastVerifiedAt: '2026-11-11T04:30:00Z' },
         { organType: 'liver', isCapable: true, isReady: true, activeSurgicalTeam: 'Govt Hepatic Core', icuBedAvailable: true, lastVerifiedAt: '2026-11-11T04:30:00Z' },
         { organType: 'heart', isCapable: false, isReady: false, activeSurgicalTeam: 'None', icuBedAvailable: false, lastVerifiedAt: '2026-11-01T00:00:00Z' },
+      ],
+    },
+    {
+      id: 'HOSP-05',
+      name: 'Star Hospitals Multi-Organ Wing',
+      city: 'Banjara Hills, Hyderabad',
+      state: 'Telangana',
+      tier: 'REGIONAL_HOSPITAL',
+      registrationStatus: 'PENDING_APPROVAL',
+      licenseNumber: 'TS-THOTA-2026-089',
+      contactEmail: 'accreditation@star-hyd.demo',
+      registeredAt: '2026-11-10T11:30:00Z',
+      capabilities: [
+        { organType: 'kidney', isCapable: true, isReady: true, activeSurgicalTeam: 'Dr. Kavitha Renal Unit', icuBedAvailable: true, lastVerifiedAt: '2026-11-10T11:30:00Z' },
+        { organType: 'liver', isCapable: true, isReady: false, activeSurgicalTeam: 'Pending Board Audit', icuBedAvailable: false, lastVerifiedAt: '2026-11-10T11:30:00Z' },
       ],
     },
   ];
@@ -1105,6 +1144,97 @@ export function buildSeedDatabase(): DatabaseState {
     },
   ];
 
+  const organOpportunities: OrganOpportunity[] = [
+    {
+      id: 'OPP-KID-01',
+      hospitalId: 'HOSP-01',
+      hospitalName: 'Apollo Health City (Transplant Wing)',
+      organType: 'kidney',
+      title: 'Renal Transplant Coordination Program — Blood Group O+ Priority',
+      bloodGroup: 'O+',
+      tissueHLA: 'A2, A24, B35, B44, DR4, DR11',
+      preservationWindowHours: 30,
+      minUrgencyScore: 60,
+      clinicalRequirements: 'Crossmatch PRA < 20%, recent cardiac clearance, ABO O+ compatible.',
+      status: 'OPEN',
+      postedByUserId: 'USR-HOSP-01',
+      postedByName: 'Admin Rajesh (Apollo Wing)',
+      createdAt: hoursAgoIso(18),
+      updatedAt: hoursAgoIso(18),
+    },
+    {
+      id: 'OPP-KID-02',
+      hospitalId: 'HOSP-02',
+      hospitalName: 'KIMS Hospitals Institute of Renal Sciences',
+      organType: 'kidney',
+      title: 'Living / Deceased Donor Kidney Matching Cohort (Blood Group A+ / O-)',
+      bloodGroup: 'A+',
+      tissueHLA: 'A1, A3, B7, B8, DR3, DR15',
+      preservationWindowHours: 24,
+      minUrgencyScore: 50,
+      clinicalRequirements: 'Verified HLA typing and active nephrology clearance.',
+      status: 'OPEN',
+      postedByUserId: 'USR-HOSP-01',
+      postedByName: 'KIMS Renal Coordination Desk',
+      createdAt: hoursAgoIso(12),
+      updatedAt: hoursAgoIso(12),
+    },
+    {
+      id: 'OPP-LIV-01',
+      hospitalId: 'HOSP-03',
+      hospitalName: 'Yashoda Super Speciality Hospital',
+      organType: 'liver',
+      title: 'Hepatobiliary Split-Liver Opportunity — Type O+',
+      bloodGroup: 'O+',
+      tissueHLA: 'A2, A24, B35, B44, DR4, DR11',
+      preservationWindowHours: 12,
+      minUrgencyScore: 20,
+      clinicalRequirements: 'MELD score documented within 30 days; low steatosis compatibility.',
+      status: 'OPEN',
+      postedByUserId: 'USR-HOSP-01',
+      postedByName: 'Yashoda Transplant Desk',
+      createdAt: hoursAgoIso(8),
+      updatedAt: hoursAgoIso(8),
+    },
+    {
+      id: 'OPP-HRT-01',
+      hospitalId: 'HOSP-01',
+      hospitalName: 'Apollo Health City (Transplant Wing)',
+      organType: 'heart',
+      title: 'Thoracic Cardiac Allocation — Urgent Status O+',
+      bloodGroup: 'O+',
+      tissueHLA: 'A2, A24, B44, B18, DR4, DR11',
+      preservationWindowHours: 5,
+      minUrgencyScore: 70,
+      clinicalRequirements: 'Thoracic Status 1A/1B clearance, echocardiography report uploaded.',
+      status: 'OPEN',
+      postedByUserId: 'USR-HOSP-01',
+      postedByName: 'Admin Rajesh (Apollo Wing)',
+      createdAt: hoursAgoIso(5),
+      updatedAt: hoursAgoIso(5),
+    },
+    {
+      id: 'OPP-LNG-01',
+      hospitalId: 'HOSP-03',
+      hospitalName: 'Yashoda Super Speciality Hospital',
+      organType: 'lung',
+      title: 'Pulmonary Bilateral Graft Matching Opportunity',
+      bloodGroup: 'O+',
+      tissueHLA: 'A2, A24, B35, B7, DR4, DR11',
+      preservationWindowHours: 7,
+      minUrgencyScore: 65,
+      clinicalRequirements: 'Spirometry & bronchoscopy report uploaded in medical profile.',
+      status: 'OPEN',
+      postedByUserId: 'USR-HOSP-01',
+      postedByName: 'Yashoda Thoracic Team',
+      createdAt: hoursAgoIso(4),
+      updatedAt: hoursAgoIso(4),
+    },
+  ];
+
+  const medicalProfiles: MedicalProfileRecord[] = [];
+  const coordinationRecords: CaseCoordinationRecord[] = [];
+
   const auditTrail = generateInitialServerAuditEvents();
 
   return {
@@ -1124,6 +1254,9 @@ export function buildSeedDatabase(): DatabaseState {
     auditTrail,
     notifications,
     simulations,
+    medicalProfiles,
+    organOpportunities,
+    coordinationRecords,
   };
 }
 

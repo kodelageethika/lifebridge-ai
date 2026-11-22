@@ -13,6 +13,7 @@ import {
   Sliders,
   CheckCircle2,
   X,
+  Building2,
 } from 'lucide-react';
 
 interface AiRecipientSummaryResult {
@@ -44,6 +45,7 @@ export const RoleDashboardRouter: React.FC = () => {
     loadAdminUsers,
     updateUserStatus,
     publishNewConfigVersion,
+    reviewHospitalRegistration,
   } = useApp();
 
   const [showDonorModal, setShowDonorModal] = useState(false);
@@ -221,6 +223,15 @@ export const RoleDashboardRouter: React.FC = () => {
                 <span>Add Recipient</span>
               </button>
             </>
+          )}
+          {(currentUserRole === 'hospital' || currentUserRole === 'admin') && (
+            <button
+              onClick={() => setActiveView('readiness')}
+              className="px-3.5 py-2 text-xs font-semibold bg-[#F8E8E3] dark:bg-[#2C1C1A] border border-[#E98F83]/40 text-[#243B55] dark:text-white hover:border-[#E98F83] rounded-xl transition-all flex items-center gap-1.5 cursor-pointer"
+            >
+              <Building2 size={13} className="text-[#E98F83]" />
+              <span>Hospital Opportunities & Applications</span>
+            </button>
           )}
           <button
             onClick={() => setIsScenarioDrawerOpen(true)}
@@ -540,6 +551,101 @@ export const RoleDashboardRouter: React.FC = () => {
                 ))}
               </tbody>
             </table>
+          </div>
+          {/* Hospital Registrations & Accreditation Review (Step 9) */}
+          <div className="pt-4 border-t border-[#EFE7DE] dark:border-[#273A52] space-y-3">
+            <div className="flex items-center justify-between gap-2">
+              <div className="flex items-center gap-2">
+                <Building2 size={16} className="text-[#E98F83]" />
+                <h3 className="text-sm font-bold text-[#243B55] dark:text-white">
+                  Hospital Registrations & Accreditation ({hospitals.length})
+                </h3>
+              </div>
+              <span className="text-[11px] text-[#788394]">
+                {hospitals.filter(h => h.registrationStatus === 'PENDING_APPROVAL').length} pending approval
+              </span>
+            </div>
+
+            <div className="overflow-x-auto">
+              <table className="w-full text-xs text-left">
+                <thead className="border-b border-[#EFE7DE] dark:border-[#273A52] text-[#788394]">
+                  <tr>
+                    <th className="py-2 pr-3">Hospital Facility</th>
+                    <th className="py-2 pr-3">License / Contact</th>
+                    <th className="py-2 pr-3">Status</th>
+                    <th className="py-2 text-right">Action</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-[#EFE7DE] dark:divide-[#273A52]">
+                  {[...hospitals]
+                    .sort((a, b) => {
+                      const order = { PENDING_APPROVAL: 0, APPROVED: 1, REJECTED: 2 };
+                      return (order[a.registrationStatus || 'APPROVED'] ?? 1) - (order[b.registrationStatus || 'APPROVED'] ?? 1);
+                    })
+                    .map(h => (
+                      <tr key={h.id}>
+                        <td className="py-2.5 pr-3">
+                          <div className="font-semibold text-[#243B55] dark:text-white">{h.name}</div>
+                          <div className="text-[11px] text-[#788394]">
+                            {h.city}, {h.state} · {h.tier.replace(/_/g, ' ')}
+                          </div>
+                        </td>
+                        <td className="py-2.5 pr-3">
+                          <div className="font-mono text-[11px] text-[#243B55] dark:text-white">
+                            {h.licenseNumber || h.id}
+                          </div>
+                          <div className="text-[11px] text-[#788394]">{h.contactEmail || 'Verified Center'}</div>
+                        </td>
+                        <td className="py-2.5 pr-3">
+                          <span
+                            className={`px-2 py-0.5 rounded-full text-[10px] font-bold ${
+                              h.registrationStatus === 'APPROVED'
+                                ? 'bg-emerald-50 text-emerald-700 dark:bg-emerald-950/40 dark:text-emerald-300'
+                                : h.registrationStatus === 'PENDING_APPROVAL'
+                                  ? 'bg-amber-50 text-amber-700 dark:bg-amber-950/40 dark:text-amber-300'
+                                  : 'bg-rose-50 text-rose-700 dark:bg-rose-950/40 dark:text-rose-300'
+                            }`}
+                          >
+                            {(h.registrationStatus || 'APPROVED').replace(/_/g, ' ')}
+                          </span>
+                        </td>
+                        <td className="py-2.5 text-right">
+                          <div className="inline-flex items-center gap-1.5">
+                            {h.registrationStatus !== 'APPROVED' && (
+                              <button
+                                onClick={() =>
+                                  reviewHospitalRegistration(
+                                    h.id,
+                                    'APPROVED',
+                                    'Accreditation verified by Platform Administrator.'
+                                  )
+                                }
+                                className="px-2.5 py-1 rounded-lg text-[11px] font-bold bg-emerald-600 hover:bg-emerald-700 text-white cursor-pointer"
+                              >
+                                Approve
+                              </button>
+                            )}
+                            {h.registrationStatus !== 'REJECTED' && (
+                              <button
+                                onClick={() =>
+                                  reviewHospitalRegistration(
+                                    h.id,
+                                    'REJECTED',
+                                    'Facility accreditation requirements pending verification.'
+                                  )
+                                }
+                                className="px-2.5 py-1 rounded-lg text-[11px] font-semibold bg-rose-50 dark:bg-rose-950/40 text-rose-700 dark:text-rose-300 hover:bg-rose-100 cursor-pointer"
+                              >
+                                Reject
+                              </button>
+                            )}
+                          </div>
+                        </td>
+                      </tr>
+                    ))}
+                </tbody>
+              </table>
+            </div>
           </div>
         </section>
       )}

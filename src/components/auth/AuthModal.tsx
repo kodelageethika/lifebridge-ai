@@ -1,7 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { useAuth, AuthModalTab } from '../../context/AuthContext.tsx';
 import { useApp } from '../../context/AppContext.tsx';
-import { OrganType, UserRole } from '../../types/index.ts';
+import { OrganType, UserRole, Hospital } from '../../types/index.ts';
+import { apiRequest } from '../../services/api.ts';
 import {
   X,
   Lock,
@@ -46,10 +47,14 @@ export const AuthModal: React.FC = () => {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [displayName, setDisplayName] = useState('');
-  const [regRole, setRegRole] = useState<'donor' | 'recipient'>('donor');
+  const [regRole, setRegRole] = useState<'donor' | 'recipient' | 'hospital'>('donor');
   const [bloodGroup, setBloodGroup] = useState<'O+' | 'O-' | 'A+' | 'A-' | 'B+' | 'B-' | 'AB+' | 'AB-'>('O+');
   const [organType, setOrganType] = useState<OrganType>('kidney');
   const [age, setAge] = useState('28');
+  const [hospitalName, setHospitalName] = useState('');
+  const [hospitalCity, setHospitalCity] = useState('');
+  const [hospitalState, setHospitalState] = useState('');
+  const [hospitalLicense, setHospitalLicense] = useState('');
 
   // Reset password flow
   const [resetToken, setResetToken] = useState('');
@@ -108,6 +113,32 @@ export const AuthModal: React.FC = () => {
     setSubmitting(true);
     setErrorMsg(null);
     try {
+      if (regRole === 'hospital') {
+        await apiRequest<{ hospital: Hospital }>('/api/v1/hospitals/register', {
+          method: 'POST',
+          body: {
+            name: hospitalName.trim(),
+            city: hospitalCity.trim(),
+            state: hospitalState.trim(),
+            tier: 'TRANSPLANT_CENTER',
+            licenseNumber: hospitalLicense.trim(),
+            contactEmail: email.trim(),
+            organsSupported: [organType],
+            adminDisplayName: displayName.trim(),
+            adminPassword: password,
+          },
+        });
+        const loggedHospitalUser = await login(email.trim(), password);
+        addToast(
+          'info',
+          'Hospital Registered (Pending Approval)',
+          `${hospitalName.trim()} submitted. Awaiting Platform Administrator approval.`
+        );
+        routeAfterLogin(loggedHospitalUser.role);
+        setActiveView('readiness');
+        return;
+      }
+
       const newUser = await register({
         email,
         password,
@@ -341,64 +372,120 @@ export const AuthModal: React.FC = () => {
             </div>
 
             <div className="grid grid-cols-2 gap-3">
-              <div>
+              <div className={regRole === 'hospital' ? 'col-span-2' : ''}>
                 <label className="block font-semibold text-[#243B55] dark:text-white mb-1">
                   Account Type
                 </label>
                 <select
                   value={regRole}
-                  onChange={e => setRegRole(e.target.value as 'donor' | 'recipient')}
+                  onChange={e => setRegRole(e.target.value as 'donor' | 'recipient' | 'hospital')}
                   className="w-full p-2.5 rounded-xl border border-[#EFE7DE] dark:border-[#273A52] bg-[#F8F5EF] dark:bg-[#0E1722] text-[#243B55] dark:text-white"
                 >
                   <option value="donor">Organ Donor</option>
                   <option value="recipient">Recipient Candidate</option>
+                  <option value="hospital">Hospital Facility (Pending Admin Approval)</option>
                 </select>
               </div>
-              <div>
-                <label className="block font-semibold text-[#243B55] dark:text-white mb-1">
-                  Blood Group
-                </label>
-                <select
-                  value={bloodGroup}
-                  onChange={e => setBloodGroup(e.target.value as any)}
-                  className="w-full p-2.5 rounded-xl border border-[#EFE7DE] dark:border-[#273A52] bg-[#F8F5EF] dark:bg-[#0E1722] text-[#243B55] dark:text-white"
-                >
-                  {['O+', 'O-', 'A+', 'A-', 'B+', 'B-', 'AB+', 'AB-'].map(bg => (
-                    <option key={bg} value={bg}>{bg}</option>
-                  ))}
-                </select>
-              </div>
+              {regRole !== 'hospital' && (
+                <div>
+                  <label className="block font-semibold text-[#243B55] dark:text-white mb-1">
+                    Blood Group
+                  </label>
+                  <select
+                    value={bloodGroup}
+                    onChange={e => setBloodGroup(e.target.value as any)}
+                    className="w-full p-2.5 rounded-xl border border-[#EFE7DE] dark:border-[#273A52] bg-[#F8F5EF] dark:bg-[#0E1722] text-[#243B55] dark:text-white"
+                  >
+                    {['O+', 'O-', 'A+', 'A-', 'B+', 'B-', 'AB+', 'AB-'].map(bg => (
+                      <option key={bg} value={bg}>{bg}</option>
+                    ))}
+                  </select>
+                </div>
+              )}
             </div>
 
-            <div className="grid grid-cols-2 gap-3">
-              <div>
-                <label className="block font-semibold text-[#243B55] dark:text-white mb-1">
-                  Primary Organ
-                </label>
-                <select
-                  value={organType}
-                  onChange={e => setOrganType(e.target.value as OrganType)}
-                  className="w-full p-2.5 rounded-xl border border-[#EFE7DE] dark:border-[#273A52] bg-[#F8F5EF] dark:bg-[#0E1722] text-[#243B55] dark:text-white capitalize"
-                >
-                  {['kidney', 'liver', 'heart', 'lung', 'pancreas', 'intestine'].map(o => (
-                    <option key={o} value={o}>{o}</option>
-                  ))}
-                </select>
+            {regRole === 'hospital' ? (
+              <div className="space-y-3">
+                <div>
+                  <label className="block font-semibold text-[#243B55] dark:text-white mb-1">
+                    Hospital Facility Name
+                  </label>
+                  <input
+                    type="text"
+                    required
+                    value={hospitalName}
+                    onChange={e => setHospitalName(e.target.value)}
+                    placeholder="e.g. Rainbow Transplant Institute"
+                    className="w-full p-2.5 rounded-xl border border-[#EFE7DE] dark:border-[#273A52] bg-[#F8F5EF] dark:bg-[#0E1722] text-[#243B55] dark:text-white"
+                  />
+                </div>
+                <div className="grid grid-cols-3 gap-2">
+                  <div>
+                    <label className="block font-semibold text-[#243B55] dark:text-white mb-1">City</label>
+                    <input
+                      type="text"
+                      required
+                      value={hospitalCity}
+                      onChange={e => setHospitalCity(e.target.value)}
+                      placeholder="Hyderabad"
+                      className="w-full p-2.5 rounded-xl border border-[#EFE7DE] dark:border-[#273A52] bg-[#F8F5EF] dark:bg-[#0E1722] text-[#243B55] dark:text-white"
+                    />
+                  </div>
+                  <div>
+                    <label className="block font-semibold text-[#243B55] dark:text-white mb-1">State</label>
+                    <input
+                      type="text"
+                      required
+                      value={hospitalState}
+                      onChange={e => setHospitalState(e.target.value)}
+                      placeholder="Telangana"
+                      className="w-full p-2.5 rounded-xl border border-[#EFE7DE] dark:border-[#273A52] bg-[#F8F5EF] dark:bg-[#0E1722] text-[#243B55] dark:text-white"
+                    />
+                  </div>
+                  <div>
+                    <label className="block font-semibold text-[#243B55] dark:text-white mb-1">License ID</label>
+                    <input
+                      type="text"
+                      required
+                      value={hospitalLicense}
+                      onChange={e => setHospitalLicense(e.target.value)}
+                      placeholder="TS-THOTA-26"
+                      className="w-full p-2.5 rounded-xl border border-[#EFE7DE] dark:border-[#273A52] bg-[#F8F5EF] dark:bg-[#0E1722] text-[#243B55] dark:text-white"
+                    />
+                  </div>
+                </div>
               </div>
-              <div>
-                <label className="block font-semibold text-[#243B55] dark:text-white mb-1">
-                  Age
-                </label>
-                <input
-                  type="number"
-                  min={18}
-                  max={100}
-                  value={age}
-                  onChange={e => setAge(e.target.value)}
-                  className="w-full p-2.5 rounded-xl border border-[#EFE7DE] dark:border-[#273A52] bg-[#F8F5EF] dark:bg-[#0E1722] text-[#243B55] dark:text-white"
-                />
+            ) : (
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="block font-semibold text-[#243B55] dark:text-white mb-1">
+                    Primary Organ
+                  </label>
+                  <select
+                    value={organType}
+                    onChange={e => setOrganType(e.target.value as OrganType)}
+                    className="w-full p-2.5 rounded-xl border border-[#EFE7DE] dark:border-[#273A52] bg-[#F8F5EF] dark:bg-[#0E1722] text-[#243B55] dark:text-white capitalize"
+                  >
+                    {['kidney', 'liver', 'heart', 'lung', 'pancreas', 'intestine'].map(o => (
+                      <option key={o} value={o}>{o}</option>
+                    ))}
+                  </select>
+                </div>
+                <div>
+                  <label className="block font-semibold text-[#243B55] dark:text-white mb-1">
+                    Age
+                  </label>
+                  <input
+                    type="number"
+                    min={18}
+                    max={100}
+                    value={age}
+                    onChange={e => setAge(e.target.value)}
+                    className="w-full p-2.5 rounded-xl border border-[#EFE7DE] dark:border-[#273A52] bg-[#F8F5EF] dark:bg-[#0E1722] text-[#243B55] dark:text-white"
+                  />
+                </div>
               </div>
-            </div>
+            )}
 
             <div>
               <label className="block font-semibold text-[#243B55] dark:text-white mb-1">

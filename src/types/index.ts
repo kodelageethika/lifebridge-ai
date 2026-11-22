@@ -39,12 +39,21 @@ export interface PublicUserAccount {
   lastLoginAt?: string;
 }
 
+export type HospitalRegistrationStatus = 'APPROVED' | 'PENDING_APPROVAL' | 'REJECTED';
+
 export interface Hospital {
   id: string;
   name: string;
   city: string;
   state: string;
   tier: 'TIER_1_TRAUMA' | 'TRANSPLANT_CENTER' | 'REGIONAL_HOSPITAL';
+  registrationStatus: HospitalRegistrationStatus;
+  licenseNumber?: string;
+  contactEmail?: string;
+  registeredAt?: string;
+  reviewedBy?: string;
+  reviewedAt?: string;
+  reviewRemarks?: string;
   capabilities: {
     organType: OrganType;
     isCapable: boolean;
@@ -402,3 +411,93 @@ export interface SimulationRecord {
   recommendedSide: 'A' | 'B' | 'TIE';
   createdAt: string;
 }
+
+export interface ExtractedCompatibilityProfile {
+  bloodGroup?: 'O+' | 'O-' | 'A+' | 'A-' | 'B+' | 'B-' | 'AB+' | 'AB-';
+  tissueHLA?: string;
+  organType?: OrganType;
+  age?: number;
+  urgencyScore?: number;
+  conditionNotes?: string;
+  extractedKeywords: string[];
+}
+
+export interface MedicalProfileRecord {
+  id: string;
+  userId: string;
+  ownerRole: 'donor' | 'recipient';
+  linkedEntityId?: string;
+  fileName: string;
+  fileSizeBytes: number;
+  uploadedAt: string;
+  extractedText: string;
+  compatibility: ExtractedCompatibilityProfile;
+}
+
+export interface OrganOpportunity {
+  id: string;
+  hospitalId: string;
+  hospitalName: string;
+  organType: OrganType;
+  title: string;
+  bloodGroup: 'O+' | 'O-' | 'A+' | 'A-' | 'B+' | 'B-' | 'AB+' | 'AB-';
+  tissueHLA: string;
+  preservationWindowHours: number;
+  minUrgencyScore?: number;
+  clinicalRequirements: string;
+  status: 'OPEN' | 'MATCHED' | 'CLOSED';
+  postedByUserId: string;
+  postedByName: string;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface PortalRecommendationItem {
+  opportunity: OrganOpportunity;
+  matchingScore: number;
+  isSuitable: boolean;
+  recommendationReason: string;
+  factors: FactorScore[];
+  checks: EligibilityCheck[];
+}
+
+export type CoordinationRecordStatus =
+  | 'SUBMITTED'
+  | 'UNDER_HOSPITAL_REVIEW'
+  | 'APPROVED'
+  | 'REJECTED'
+  | 'WITHDRAWN';
+
+export interface CoordinationRecordHistoryEntry {
+  timestamp: string;
+  status: CoordinationRecordStatus;
+  actorName: string;
+  actorRole: UserRole;
+  note: string;
+}
+
+export interface CaseCoordinationRecord {
+  id: string;
+  recordNumber: string;
+  applicantUserId: string;
+  applicantRole: 'donor' | 'recipient';
+  applicantName: string;
+  applicantCode?: string;
+  medicalProfileId?: string;
+  opportunityId: string;
+  opportunityTitle: string;
+  organType: OrganType;
+  hospitalId: string;
+  hospitalName: string;
+  compatibilityScore: number;
+  compatibilitySummary: string;
+  notes: string;
+  status: CoordinationRecordStatus;
+  hospitalRemarks?: string;
+  withdrawnReason?: string;
+  reviewedBy?: string;
+  createdAt: string;
+  updatedAt: string;
+  history: CoordinationRecordHistoryEntry[];
+}
+

@@ -1,16 +1,21 @@
 import React, { createContext, useCallback, useContext, useEffect, useState } from 'react';
 import {
   AuditEvent,
+  CaseCoordinationRecord,
+  CoordinationRecordStatus,
   DataQualityIssue,
   Donor,
   FairnessMetric,
   Hospital,
   LogisticsCase,
   MatchRun,
+  MedicalProfileRecord,
   NotificationItem,
   OrganConfig,
+  OrganOpportunity,
   OrganRecord,
   OrganType,
+  PortalRecommendationItem,
   PublicUserAccount,
   Recipient,
   RecoveryRecord,
@@ -63,6 +68,10 @@ interface BootstrapResponse {
   auditTrail: AuditEvent[];
   notifications: NotificationItem[];
   simulations: SimulationRecord[];
+  medicalProfiles?: MedicalProfileRecord[];
+  organOpportunities?: OrganOpportunity[];
+  coordinationRecords?: CaseCoordinationRecord[];
+  portalRecommendations?: PortalRecommendationItem[];
 }
 
 interface AppContextType {
@@ -96,6 +105,10 @@ interface AppContextType {
   notifications: NotificationItem[];
   simulations: SimulationRecord[];
   adminUsers: PublicUserAccount[];
+  medicalProfiles: MedicalProfileRecord[];
+  organOpportunities: OrganOpportunity[];
+  coordinationRecords: CaseCoordinationRecord[];
+  portalRecommendations: PortalRecommendationItem[];
 
   // Actions
   refreshBootstrap: () => Promise<void>;
@@ -184,6 +197,39 @@ interface AppContextType {
   markAllNotificationsRead: () => Promise<void>;
   loadAdminUsers: () => Promise<void>;
   updateUserStatus: (userId: string, status: 'ACTIVE' | 'SUSPENDED') => Promise<void>;
+  uploadMedicalProfilePdf: (fileName: string, pdfBase64: string) => Promise<MedicalProfileRecord | null>;
+  refreshPortalRecommendations: () => Promise<void>;
+  submitCoordinationRecord: (opportunityId: string, notes: string) => Promise<CaseCoordinationRecord | null>;
+  withdrawCoordinationRecord: (recordId: string, reason: string) => Promise<boolean>;
+  registerHospital: (input: {
+    name: string;
+    city: string;
+    state: string;
+    tier: Hospital['tier'];
+    licenseNumber: string;
+    contactEmail: string;
+    organsSupported: OrganType[];
+  }) => Promise<Hospital | null>;
+  postOrganOpportunity: (input: {
+    hospitalId?: string;
+    organType: OrganType;
+    title: string;
+    bloodGroup: OrganOpportunity['bloodGroup'];
+    tissueHLA: string;
+    preservationWindowHours: number;
+    minUrgencyScore?: number;
+    clinicalRequirements: string;
+  }) => Promise<OrganOpportunity | null>;
+  updateCoordinationRecordStatus: (
+    recordId: string,
+    status: Extract<CoordinationRecordStatus, 'UNDER_HOSPITAL_REVIEW' | 'APPROVED' | 'REJECTED'>,
+    remarks?: string
+  ) => Promise<boolean>;
+  reviewHospitalRegistration: (
+    hospitalId: string,
+    status: 'APPROVED' | 'REJECTED',
+    remarks?: string
+  ) => Promise<boolean>;
 
   // Toasts
   toasts: ToastMessage[];
@@ -241,6 +287,10 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   const [notifications, setNotifications] = useState<NotificationItem[]>([]);
   const [simulations, setSimulations] = useState<SimulationRecord[]>([]);
   const [adminUsers, setAdminUsers] = useState<PublicUserAccount[]>([]);
+  const [medicalProfiles, setMedicalProfiles] = useState<MedicalProfileRecord[]>([]);
+  const [organOpportunities, setOrganOpportunities] = useState<OrganOpportunity[]>([]);
+  const [coordinationRecords, setCoordinationRecords] = useState<CaseCoordinationRecord[]>([]);
+  const [portalRecommendations, setPortalRecommendations] = useState<PortalRecommendationItem[]>([]);
 
   const [toasts, setToasts] = useState<ToastMessage[]>([]);
 
@@ -286,6 +336,10 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         setNotifications([]);
         setSimulations([]);
         setAdminUsers([]);
+        setMedicalProfiles([]);
+        setOrganOpportunities([]);
+        setCoordinationRecords([]);
+        setPortalRecommendations([]);
       } else {
         const data = await apiRequest<BootstrapResponse>('/api/v1/bootstrap');
         setOrganConfigs(data.organConfigs);
@@ -302,6 +356,10 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         setAuditTrail(data.auditTrail);
         setNotifications(data.notifications);
         setSimulations(data.simulations);
+        setMedicalProfiles(data.medicalProfiles || []);
+        setOrganOpportunities(data.organOpportunities || []);
+        setCoordinationRecords(data.coordinationRecords || []);
+        setPortalRecommendations(data.portalRecommendations || []);
       }
     } catch (err) {
       addToast('error', 'Sync Error', err instanceof Error ? err.message : 'Unable to fetch server state');
@@ -719,6 +777,158 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     await loadAdminUsers();
   };
 
+  const uploadMedicalProfilePdf = async (
+    fileName: string,
+    pdfBase64: string
+  ): Promise<MedicalProfileRecord | null> => {
+    const res = await runApiMutation(
+      () =>
+        apiRequest<{ medicalProfile: MedicalProfileRecord }>('/api/v1/portal/medical-profile', {
+          method: 'POST',
+          body: { fileName, pdfBase64 },
+        }),
+      {
+        title: 'Medical Profile Extracted',
+        message: `Compatibility details parsed from "${fileName}" and synced to your matching profile.`,
+      }
+    );
+    return res?.medicalProfile || null;
+  };
+
+  const refreshPortalRecommendations = async () => {
+    try {
+      const res = await apiRequest<{ recommendations: PortalRecommendationItem[] }>(
+        '/api/v1/portal/recommendations'
+      );
+      setPortalRecommendations(res.recommendations);
+      addToast('info', 'Recommendations Updated', 'Compatibility matching scores recalculated against open opportunities.');
+    } catch (err) {
+      addToast('error', 'Matching Error', err instanceof Error ? err.message : 'Unable to refresh recommendations');
+    }
+  };
+
+  const submitCoordinationRecord = async (
+    opportunityId: string,
+    notes: string
+  ): Promise<CaseCoordinationRecord | null> => {
+    const res = await runApiMutation(
+      () =>
+        apiRequest<{ coordinationRecord: CaseCoordinationRecord }>('/api/v1/portal/coordination-records', {
+          method: 'POST',
+          body: { opportunityId, notes },
+        }),
+      {
+        title: 'Case Coordination Record Submitted',
+        message: 'Your application has been queued for hospital review.',
+      }
+    );
+    return res?.coordinationRecord || null;
+  };
+
+  const withdrawCoordinationRecord = async (recordId: string, reason: string): Promise<boolean> => {
+    const res = await runApiMutation(
+      () =>
+        apiRequest<{ coordinationRecord: CaseCoordinationRecord }>(
+          `/api/v1/portal/coordination-records/${recordId}/withdraw`,
+          { method: 'POST', body: { reason } }
+        ),
+      {
+        type: 'warning',
+        title: 'Application Withdrawn',
+        message: 'Case coordination record withdrawn cleanly.',
+      }
+    );
+    return Boolean(res);
+  };
+
+  const registerHospital = async (input: {
+    name: string;
+    city: string;
+    state: string;
+    tier: Hospital['tier'];
+    licenseNumber: string;
+    contactEmail: string;
+    organsSupported: OrganType[];
+  }): Promise<Hospital | null> => {
+    const res = await runApiMutation(
+      () =>
+        apiRequest<{ hospital: Hospital }>('/api/v1/hospitals/register', {
+          method: 'POST',
+          body: input,
+        }),
+      {
+        title: 'Hospital Registered (Pending Approval)',
+        message: `${input.name} submitted for administrator review.`,
+      }
+    );
+    return res?.hospital || null;
+  };
+
+  const postOrganOpportunity = async (input: {
+    hospitalId?: string;
+    organType: OrganType;
+    title: string;
+    bloodGroup: OrganOpportunity['bloodGroup'];
+    tissueHLA: string;
+    preservationWindowHours: number;
+    minUrgencyScore?: number;
+    clinicalRequirements: string;
+  }): Promise<OrganOpportunity | null> => {
+    const res = await runApiMutation(
+      () =>
+        apiRequest<{ organOpportunity: OrganOpportunity }>('/api/v1/hospitals/opportunities', {
+          method: 'POST',
+          body: input,
+        }),
+      {
+        title: 'Opportunity Posted',
+        message: `New ${input.organType.toUpperCase()} coordination opportunity is now live for matching.`,
+      }
+    );
+    return res?.organOpportunity || null;
+  };
+
+  const updateCoordinationRecordStatus = async (
+    recordId: string,
+    status: Extract<CoordinationRecordStatus, 'UNDER_HOSPITAL_REVIEW' | 'APPROVED' | 'REJECTED'>,
+    remarks?: string
+  ): Promise<boolean> => {
+    const res = await runApiMutation(
+      () =>
+        apiRequest<{ coordinationRecord: CaseCoordinationRecord }>(
+          `/api/v1/hospitals/coordination-records/${recordId}/status`,
+          {
+            method: 'PATCH',
+            body: { status, remarks },
+          }
+        ),
+      {
+        title: 'Coordination Record Updated',
+        message: `Status updated to ${status.replace(/_/g, ' ')}.`,
+      }
+    );
+    return Boolean(res);
+  };
+
+  const reviewHospitalRegistration = async (
+    hospitalId: string,
+    status: 'APPROVED' | 'REJECTED',
+    remarks?: string
+  ): Promise<boolean> => {
+    const res = await runApiMutation(
+      () =>
+        apiRequest<{ hospital: Hospital }>(`/api/v1/admin/hospitals/${hospitalId}/status`, {
+          method: 'PATCH',
+          body: { status, remarks },
+        }),
+      {
+        title: `Hospital ${status}`,
+        message: `Hospital accreditation status set to ${status}.`,
+      }
+    );
+    return Boolean(res);
+  };
+
   const runScenario = (scenarioIndex: number) => {
     setIsScenarioDrawerOpen(false);
 
@@ -795,6 +1005,10 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         notifications,
         simulations,
         adminUsers,
+        medicalProfiles,
+        organOpportunities,
+        coordinationRecords,
+        portalRecommendations,
         refreshBootstrap,
         runDeterministicMatch,
         submitApprovalDecision,
@@ -821,6 +1035,14 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         markAllNotificationsRead,
         loadAdminUsers,
         updateUserStatus,
+        uploadMedicalProfilePdf,
+        refreshPortalRecommendations,
+        submitCoordinationRecord,
+        withdrawCoordinationRecord,
+        registerHospital,
+        postOrganOpportunity,
+        updateCoordinationRecordStatus,
+        reviewHospitalRegistration,
         toasts,
         addToast,
         removeToast,

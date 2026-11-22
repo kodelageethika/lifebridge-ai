@@ -137,6 +137,7 @@ export const INITIAL_HOSPITALS: Hospital[] = [
     city: 'Hyderabad',
     state: 'Telangana',
     tier: 'TRANSPLANT_CENTER',
+    registrationStatus: 'APPROVED',
     capabilities: [
       {
         organType: 'kidney',
@@ -194,6 +195,7 @@ export const INITIAL_HOSPITALS: Hospital[] = [
     city: 'Secunderabad',
     state: 'Telangana',
     tier: 'TRANSPLANT_CENTER',
+    registrationStatus: 'APPROVED',
     capabilities: [
       {
         organType: 'kidney',
@@ -227,6 +229,7 @@ export const INITIAL_HOSPITALS: Hospital[] = [
     city: 'Somajiguda, Hyderabad',
     state: 'Telangana',
     tier: 'TIER_1_TRAUMA',
+    registrationStatus: 'APPROVED',
     capabilities: [
       {
         organType: 'kidney',
@@ -260,6 +263,7 @@ export const INITIAL_HOSPITALS: Hospital[] = [
     city: 'Punjagutta, Hyderabad',
     state: 'Telangana',
     tier: 'TRANSPLANT_CENTER',
+    registrationStatus: 'APPROVED',
     capabilities: [
       {
         organType: 'kidney',

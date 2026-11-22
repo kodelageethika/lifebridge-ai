@@ -23,6 +23,7 @@ const {
 } = await import('../server/src/services/notificationService.js');
 const { runJsonToPostgresMigration } = await import('../server/src/db/migrateJsonToPostgres.js');
 const { adminAuth, verifyFirebaseIdToken } = await import('../server/src/lib/firebase-admin.js');
+const { normalizeApiBase, buildApiUrl, apiRequest, ApiError } = await import('../src/services/api.js');
 
 const app = createApiApp();
 
@@ -882,6 +883,113 @@ describe('LifeBridge AI — Gemini AI, SMTP, Migration, Database Failure & Secur
         .set('Origin', 'https://evil-attacker.example');
       expect(denied.status).toBe(403);
       expect(denied.body.error.code).toBe('FORBIDDEN');
+    });
+  });
+
+  describe('6. Frontend-Backend API Route Audit & URL Normalization', () => {
+    it('Prevents duplicate /api/api or /api/vl prefixes in buildApiUrl and normalizeApiBase', () => {
+      expect(normalizeApiBase(undefined)).toBe('');
+      expect(normalizeApiBase('')).toBe('');
+      expect(normalizeApiBase('https://lifebridge-api.onrender.com/')).toBe('https://lifebridge-api.onrender.com');
+      expect(normalizeApiBase('https://lifebridge-api.onrender.com/api')).toBe('https://lifebridge-api.onrender.com');
+      expect(normalizeApiBase('https://lifebridge-api.onrender.com/api/')).toBe('https://lifebridge-api.onrender.com');
+      expect(normalizeApiBase('https://lifebridge-api.onrender.com/api/v1/')).toBe('https://lifebridge-api.onrender.com');
+      expect(normalizeApiBase('https://lifebridge-api.onrender.com/api/vl/')).toBe('https://lifebridge-api.onrender.com');
+
+      expect(buildApiUrl('/api/v1/auth/login', '')).toBe('/api/v1/auth/login');
+      expect(buildApiUrl('/api/v1/auth/login', 'https://lifebridge-api.onrender.com/api/')).toBe(
+        'https://lifebridge-api.onrender.com/api/v1/auth/login'
+      );
+    });
+
+    it('Surfaces explicit HTTP 405 static-host diagnostics and preserves backend JSON errors', async () => {
+      const originalFetch = globalThis.fetch;
+      try {
+        globalThis.fetch = vi.fn().mockResolvedValueOnce(
+          new Response('<html>405 Not Allowed</html>', {
+            status: 405,
+            statusText: 'Method Not Allowed',
+            headers: { 'Content-Type': 'text/html' },
+          })
+        ) as unknown as typeof fetch;
+
+        await expect(
+          apiRequest('/api/v1/auth/login', {
+            method: 'POST',
+            body: { email: 'coordinator@lifebridge.demo', password: 'LifeBridge@2026' },
+          })
+        ).rejects.toMatchObject({
+          name: 'Error',
+          status: 405,
+          code: 'METHOD_NOT_ALLOWED_STATIC_HOST',
+        });
+
+        globalThis.fetch = vi.fn().mockResolvedValueOnce(
+          new Response(
+            JSON.stringify({
+              success: false,
+              error: { code: 'NOT_FOUND', message: 'API endpoint POST /api/api/vl/auth/login not found' },
+            }),
+            { status: 404, headers: { 'Content-Type': 'application/json' } }
+          )
+        ) as unknown as typeof fetch;
+
+        try {
+          await apiRequest('/api/api/vl/auth/login', { method: 'POST', body: {} });
+          throw new Error('Expected ApiError');
+        } catch (err) {
+          expect(err).toBeInstanceOf(ApiError);
+          expect((err as InstanceType<typeof ApiError>).status).toBe(404);
+          expect((err as InstanceType<typeof ApiError>).message).toBe(
+            'API endpoint POST /api/api/vl/auth/login not found'
+          );
+        }
+      } finally {
+        globalThis.fetch = originalFetch;
+      }
+    });
+
+    it('Verifies all registered GET/POST API endpoints and confirms /api/api/vl returns 404 while /api/v1/auth/login returns 200', async () => {
+      const badPath = await request(app).post('/api/api/vl/auth/login').send({});
+      expect(badPath.status).toBe(404);
+      expect(badPath.body.error.message).toContain('/api/api/vl/auth/login');
+
+      const admin = await loginAs('admin@lifebridge.demo');
+      const coord = await loginAs('coordinator@lifebridge.demo');
+
+      const getChecks = await Promise.all([
+        request(app).get('/api/health'),
+        request(app).get('/api/v1/bootstrap/public'),
+        request(app).get('/api/v1/bootstrap').set('Authorization', `Bearer ${coord.token}`),
+        request(app).get('/api/v1/donors').set('Authorization', `Bearer ${coord.token}`),
+        request(app).get('/api/v1/recipients').set('Authorization', `Bearer ${coord.token}`),
+        request(app).get('/api/v1/hospitals').set('Authorization', `Bearer ${coord.token}`),
+        request(app).get('/api/v1/configs').set('Authorization', `Bearer ${coord.token}`),
+        request(app).get('/api/v1/matching/runs').set('Authorization', `Bearer ${coord.token}`),
+        request(app).get('/api/v1/workflows').set('Authorization', `Bearer ${coord.token}`),
+        request(app).get('/api/v1/logistics').set('Authorization', `Bearer ${coord.token}`),
+        request(app).get('/api/v1/recovery').set('Authorization', `Bearer ${coord.token}`),
+        request(app).get('/api/v1/fairness?organType=kidney').set('Authorization', `Bearer ${coord.token}`),
+        request(app).get('/api/v1/audit').set('Authorization', `Bearer ${coord.token}`),
+        request(app).get('/api/v1/audit/verify').set('Authorization', `Bearer ${coord.token}`),
+        request(app).get('/api/v1/simulator/history').set('Authorization', `Bearer ${coord.token}`),
+        request(app).get('/api/v1/notifications').set('Authorization', `Bearer ${coord.token}`),
+        request(app).get('/api/v1/admin/users').set('Authorization', `Bearer ${admin.token}`),
+      ]);
+
+      for (const res of getChecks) {
+        expect(res.status).toBe(200);
+        expect(res.body.success).toBe(true);
+      }
+
+      const pledgeRes = await request(app).post('/api/v1/pledges').send({
+        name: 'Audit Test Pledge',
+        age: 29,
+        bloodGroup: 'O+',
+        consentedOrgans: ['kidney'],
+      });
+      expect(pledgeRes.status).toBe(201);
+      expect(pledgeRes.body.success).toBe(true);
     });
   });
 });

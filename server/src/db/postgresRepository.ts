@@ -3,12 +3,15 @@ import { Pool } from 'pg';
 import { env, isValidPostgresConnectionUrl } from '../config/env.ts';
 import { ServiceUnavailableError } from '../middleware/errorHandler.ts';
 import {
+  type CaseCoordinationRecord,
   type DatabaseState,
   type Donor,
   type Hospital,
   type LogisticsCase,
   type MatchRun,
+  type MedicalProfileRecord,
   type OrganConfig,
+  type OrganOpportunity,
   type OrganRecord,
   type Recipient,
   type RecoveryRecord,
@@ -75,6 +78,9 @@ export class PostgresPrismaRepository implements DatabaseRepository {
       auditTrail,
       notifications,
       simulations,
+      medicalProfiles,
+      organOpportunities,
+      coordinationRecords,
     ] = await Promise.all([
       client.user.findMany({ orderBy: { createdAt: 'asc' } }),
       client.session.findMany(),
@@ -100,6 +106,9 @@ export class PostgresPrismaRepository implements DatabaseRepository {
       client.auditEvent.findMany({ orderBy: { sequenceNumber: 'asc' } }),
       client.notification.findMany({ orderBy: { createdAt: 'desc' } }),
       client.simulationRecord.findMany({ orderBy: { createdAt: 'desc' } }),
+      client.medicalProfile.findMany({ orderBy: { uploadedAt: 'desc' } }),
+      client.organOpportunity.findMany({ orderBy: { createdAt: 'desc' } }),
+      client.caseCoordinationRecord.findMany({ orderBy: { createdAt: 'desc' } }),
     ]);
 
     const hospitalMap = new Map(hospitals.map(h => [h.id, h.name]));
@@ -158,6 +167,13 @@ export class PostgresPrismaRepository implements DatabaseRepository {
         city: h.city,
         state: h.state,
         tier: h.tier as Hospital['tier'],
+        registrationStatus: (h.registrationStatus || 'APPROVED') as Hospital['registrationStatus'],
+        licenseNumber: h.licenseNumber ?? undefined,
+        contactEmail: h.contactEmail ?? undefined,
+        registeredAt: h.registeredAt?.toISOString(),
+        reviewedBy: h.reviewedBy ?? undefined,
+        reviewedAt: h.reviewedAt?.toISOString(),
+        reviewRemarks: h.reviewRemarks ?? undefined,
         capabilities: h.capabilities.map(cap => ({
           organType: cap.organType,
           isCapable: cap.isCapable,
@@ -374,6 +390,58 @@ export class PostgresPrismaRepository implements DatabaseRepository {
         recommendedSide: s.recommendedSide as SimulationRecord['recommendedSide'],
         createdAt: s.createdAt.toISOString(),
       })),
+      medicalProfiles: medicalProfiles.map(m => ({
+        id: m.id,
+        userId: m.userId,
+        ownerRole: m.ownerRole as MedicalProfileRecord['ownerRole'],
+        linkedEntityId: m.linkedEntityId ?? undefined,
+        fileName: m.fileName,
+        fileSizeBytes: m.fileSizeBytes,
+        uploadedAt: m.uploadedAt.toISOString(),
+        extractedText: m.extractedText,
+        compatibility: m.compatibility as unknown as MedicalProfileRecord['compatibility'],
+      })),
+      organOpportunities: organOpportunities.map(o => ({
+        id: o.id,
+        hospitalId: o.hospitalId,
+        hospitalName: o.hospitalName,
+        organType: o.organType,
+        title: o.title,
+        bloodGroup: o.bloodGroup as OrganOpportunity['bloodGroup'],
+        tissueHLA: o.tissueHLA,
+        preservationWindowHours: o.preservationWindowHours,
+        minUrgencyScore: o.minUrgencyScore ?? undefined,
+        clinicalRequirements: o.clinicalRequirements,
+        status: o.status as OrganOpportunity['status'],
+        postedByUserId: o.postedByUserId,
+        postedByName: o.postedByName,
+        createdAt: o.createdAt.toISOString(),
+        updatedAt: o.updatedAt.toISOString(),
+      })),
+      coordinationRecords: coordinationRecords.map(r => ({
+        id: r.id,
+        recordNumber: r.recordNumber,
+        applicantUserId: r.applicantUserId,
+        applicantRole: r.applicantRole as CaseCoordinationRecord['applicantRole'],
+        applicantName: r.applicantName,
+        applicantCode: r.applicantCode ?? undefined,
+        medicalProfileId: r.medicalProfileId ?? undefined,
+        opportunityId: r.opportunityId,
+        opportunityTitle: r.opportunityTitle,
+        organType: r.organType,
+        hospitalId: r.hospitalId,
+        hospitalName: r.hospitalName,
+        compatibilityScore: r.compatibilityScore,
+        compatibilitySummary: r.compatibilitySummary,
+        notes: r.notes,
+        status: r.status as CaseCoordinationRecord['status'],
+        hospitalRemarks: r.hospitalRemarks ?? undefined,
+        withdrawnReason: r.withdrawnReason ?? undefined,
+        reviewedBy: r.reviewedBy ?? undefined,
+        createdAt: r.createdAt.toISOString(),
+        updatedAt: r.updatedAt.toISOString(),
+        history: (r.history as unknown as CaseCoordinationRecord['history']) || [],
+      })),
     };
   }
 
@@ -382,8 +450,33 @@ export class PostgresPrismaRepository implements DatabaseRepository {
     for (const h of db.hospitals) {
       await tx.hospital.upsert({
         where: { id: h.id },
-        update: { name: h.name, city: h.city, state: h.state, tier: h.tier },
-        create: { id: h.id, name: h.name, city: h.city, state: h.state, tier: h.tier },
+        update: {
+          name: h.name,
+          city: h.city,
+          state: h.state,
+          tier: h.tier,
+          registrationStatus: h.registrationStatus || 'APPROVED',
+          licenseNumber: h.licenseNumber ?? null,
+          contactEmail: h.contactEmail ?? null,
+          registeredAt: h.registeredAt ? new Date(h.registeredAt) : null,
+          reviewedBy: h.reviewedBy ?? null,
+          reviewedAt: h.reviewedAt ? new Date(h.reviewedAt) : null,
+          reviewRemarks: h.reviewRemarks ?? null,
+        },
+        create: {
+          id: h.id,
+          name: h.name,
+          city: h.city,
+          state: h.state,
+          tier: h.tier,
+          registrationStatus: h.registrationStatus || 'APPROVED',
+          licenseNumber: h.licenseNumber ?? null,
+          contactEmail: h.contactEmail ?? null,
+          registeredAt: h.registeredAt ? new Date(h.registeredAt) : null,
+          reviewedBy: h.reviewedBy ?? null,
+          reviewedAt: h.reviewedAt ? new Date(h.reviewedAt) : null,
+          reviewRemarks: h.reviewRemarks ?? null,
+        },
       });
       for (const cap of h.capabilities) {
         await tx.hospitalCapability.upsert({
@@ -894,6 +987,95 @@ export class PostgresPrismaRepository implements DatabaseRepository {
           scoreB: sim.scoreB as Prisma.InputJsonValue,
           recommendedSide: sim.recommendedSide,
           createdAt: new Date(sim.createdAt),
+        },
+      });
+    }
+
+    // 8. Portal Medical Profiles, Organ Opportunities & Case Coordination Records
+    for (const mp of db.medicalProfiles || []) {
+      await tx.medicalProfile.upsert({
+        where: { id: mp.id },
+        update: {
+          extractedText: mp.extractedText,
+          compatibility: mp.compatibility as unknown as Prisma.InputJsonValue,
+        },
+        create: {
+          id: mp.id,
+          userId: mp.userId,
+          ownerRole: mp.ownerRole,
+          linkedEntityId: mp.linkedEntityId ?? null,
+          fileName: mp.fileName,
+          fileSizeBytes: mp.fileSizeBytes,
+          uploadedAt: new Date(mp.uploadedAt),
+          extractedText: mp.extractedText,
+          compatibility: mp.compatibility as unknown as Prisma.InputJsonValue,
+        },
+      });
+    }
+
+    for (const opp of db.organOpportunities || []) {
+      await tx.organOpportunity.upsert({
+        where: { id: opp.id },
+        update: {
+          title: opp.title,
+          status: opp.status,
+          clinicalRequirements: opp.clinicalRequirements,
+          updatedAt: new Date(opp.updatedAt),
+        },
+        create: {
+          id: opp.id,
+          hospitalId: opp.hospitalId,
+          hospitalName: opp.hospitalName,
+          organType: opp.organType,
+          title: opp.title,
+          bloodGroup: opp.bloodGroup,
+          tissueHLA: opp.tissueHLA,
+          preservationWindowHours: opp.preservationWindowHours,
+          minUrgencyScore: opp.minUrgencyScore ?? null,
+          clinicalRequirements: opp.clinicalRequirements,
+          status: opp.status,
+          postedByUserId: opp.postedByUserId,
+          postedByName: opp.postedByName,
+          createdAt: new Date(opp.createdAt),
+          updatedAt: new Date(opp.updatedAt),
+        },
+      });
+    }
+
+    for (const rec of db.coordinationRecords || []) {
+      await tx.caseCoordinationRecord.upsert({
+        where: { id: rec.id },
+        update: {
+          status: rec.status,
+          hospitalRemarks: rec.hospitalRemarks ?? null,
+          withdrawnReason: rec.withdrawnReason ?? null,
+          reviewedBy: rec.reviewedBy ?? null,
+          updatedAt: new Date(rec.updatedAt),
+          history: rec.history as unknown as Prisma.InputJsonValue,
+        },
+        create: {
+          id: rec.id,
+          recordNumber: rec.recordNumber,
+          applicantUserId: rec.applicantUserId,
+          applicantRole: rec.applicantRole,
+          applicantName: rec.applicantName,
+          applicantCode: rec.applicantCode ?? null,
+          medicalProfileId: rec.medicalProfileId ?? null,
+          opportunityId: rec.opportunityId,
+          opportunityTitle: rec.opportunityTitle,
+          organType: rec.organType,
+          hospitalId: rec.hospitalId,
+          hospitalName: rec.hospitalName,
+          compatibilityScore: rec.compatibilityScore,
+          compatibilitySummary: rec.compatibilitySummary,
+          notes: rec.notes,
+          status: rec.status,
+          hospitalRemarks: rec.hospitalRemarks ?? null,
+          withdrawnReason: rec.withdrawnReason ?? null,
+          reviewedBy: rec.reviewedBy ?? null,
+          createdAt: new Date(rec.createdAt),
+          updatedAt: new Date(rec.updatedAt),
+          history: rec.history as unknown as Prisma.InputJsonValue,
         },
       });
     }
