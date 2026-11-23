@@ -8,6 +8,10 @@
   },
   "scripts": {
     "dev": "tsx server.ts",
+    "dev:backend": "tsx server.ts --api-only",
+    "dev:server": "tsx server.ts --api-only",
+    "dev:frontend": "vite --port 5173",
+    "dev:client": "vite --port 5173",
     "start": "node server.ts",
     "build": "vite build",
     "postinstall": "prisma generate",

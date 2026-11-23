@@ -1053,6 +1053,72 @@ describe('LifeBridge AI — Gemini AI, SMTP, Migration, Database Failure & Secur
         setDbDriverForTest('json');
       }
     });
+
+    it('Supports OPTIONS CORS preflight for localhost:5173, register/login JSON responses, and api/index.ts URL normalization', async () => {
+      // 1. normalizeApiBase rejects stringified unset values and *.github.io static hosts
+      expect(normalizeApiBase('undefined')).toBe('');
+      expect(normalizeApiBase('null')).toBe('');
+      expect(normalizeApiBase('https://kodelageethika.github.io/lifebridge-ai/')).toBe('');
+
+      // 2. OPTIONS preflight succeeds cleanly from Vite dev port 5173
+      const preflight = await request(vercelApiHandler)
+        .options('/api/v1/auth/register')
+        .set('Origin', 'http://localhost:5173')
+        .set('Access-Control-Request-Method', 'POST');
+      expect(preflight.status).toBe(204);
+      expect(preflight.headers['access-control-allow-origin']).toBe('http://localhost:5173');
+      expect(preflight.headers['access-control-allow-methods']).toContain('POST');
+      expect(preflight.headers['access-control-allow-methods']).toContain('PATCH');
+
+      // 3. Path normalization supports both /api/* and rewrite-stripped /v1/* or /health
+      const normalizedHealth = await request(vercelApiHandler).get('/health');
+      expect(normalizedHealth.status).toBe(200);
+      expect(normalizedHealth.body.data.status).toBe('healthy');
+
+      // 4. Register + Login + Duplicate (409) + Wrong Password (401)
+      const uniqueEmail = `demo.student.${Date.now()}@lifebridge.test`;
+      const regRes = await request(vercelApiHandler)
+        .post('/api/v1/auth/register')
+        .set('Origin', 'http://localhost:5173')
+        .send({
+          email: uniqueEmail,
+          password: 'DemoPassword@2026',
+          displayName: 'Demo Student Donor',
+          role: 'donor',
+          bloodGroup: 'O+',
+          organType: 'kidney',
+          age: 25,
+        });
+      expect(regRes.status).toBe(201);
+      expect(regRes.body.success).toBe(true);
+      expect(regRes.body.data.user.email).toBe(uniqueEmail);
+      expect(regRes.body.data.token).toBeTruthy();
+
+      const dupRes = await request(vercelApiHandler)
+        .post('/api/v1/auth/register')
+        .send({
+          email: uniqueEmail,
+          password: 'DemoPassword@2026',
+          displayName: 'Duplicate Donor',
+          role: 'donor',
+        });
+      expect(dupRes.status).toBe(409);
+      expect(dupRes.body.success).toBe(false);
+
+      const loginOk = await request(vercelApiHandler)
+        .post('/api/v1/auth/login')
+        .set('Origin', 'http://localhost:5173')
+        .send({ email: uniqueEmail, password: 'DemoPassword@2026' });
+      expect(loginOk.status).toBe(200);
+      expect(loginOk.body.success).toBe(true);
+
+      const loginBad = await request(vercelApiHandler)
+        .post('/api/v1/auth/login')
+        .send({ email: uniqueEmail, password: 'WrongPassword123!' });
+      expect(loginBad.status).toBe(401);
+      expect(loginBad.body.success).toBe(false);
+    });
   });
 });
+
 

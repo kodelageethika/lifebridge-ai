@@ -26,39 +26,50 @@ export function createApiApp(): Express {
     })
   );
 
-  app.use(
-    cors((req, callback) => {
-      const origin = req.headers.origin;
-      if (!origin) {
-        return callback(null, { origin: true, credentials: true });
-      }
-      const forwardedHost = (req.headers['x-forwarded-host'] as string | undefined)?.split(',')[0]?.trim();
-      const requestHost = forwardedHost || req.headers.host;
-      let isSameHostOrigin = false;
-      if (requestHost) {
-        try {
-          isSameHostOrigin = new URL(origin).host === requestHost;
-        } catch {
-          isSameHostOrigin = false;
-        }
-      }
+  const corsOptionsDelegate: cors.CorsOptionsDelegate<express.Request> = (req, callback) => {
+    const origin = req.headers.origin;
+    const baseOptions: cors.CorsOptions = {
+      credentials: true,
+      methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
+      allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With', 'Accept'],
+      optionsSuccessStatus: 204,
+    };
 
-      if (
-        isSameHostOrigin ||
-        env.CORS_ORIGINS.includes(origin) ||
-        origin.startsWith('http://localhost:') ||
-        origin.startsWith('http://127.0.0.1:') ||
-        origin.endsWith('.run.app') ||
-        origin.endsWith('.googleusercontent.com')
-      ) {
-        return callback(null, { origin: true, credentials: true });
-      }
+    if (!origin) {
+      return callback(null, { ...baseOptions, origin: true });
+    }
 
-      return callback(new ForbiddenError(`Origin ${origin} not allowed by CORS policy`), {
-        origin: false,
-      });
-    })
-  );
+    const forwardedHost = (req.headers['x-forwarded-host'] as string | undefined)?.split(',')[0]?.trim();
+    const requestHost = forwardedHost || req.headers.host;
+    let isSameHostOrigin = false;
+    if (requestHost) {
+      try {
+        isSameHostOrigin = new URL(origin).host === requestHost;
+      } catch {
+        isSameHostOrigin = false;
+      }
+    }
+
+    if (
+      isSameHostOrigin ||
+      env.CORS_ORIGINS.includes(origin) ||
+      origin.startsWith('http://localhost:') ||
+      origin.startsWith('http://127.0.0.1:') ||
+      (origin.startsWith('https://') && origin.endsWith('.vercel.app')) ||
+      origin.endsWith('.run.app') ||
+      origin.endsWith('.googleusercontent.com')
+    ) {
+      return callback(null, { ...baseOptions, origin: true });
+    }
+
+    return callback(new ForbiddenError(`Origin ${origin} not allowed by CORS policy`), {
+      ...baseOptions,
+      origin: false,
+    });
+  };
+
+  app.use(cors(corsOptionsDelegate));
+  app.options('*', cors(corsOptionsDelegate));
 
   app.use(cookieParser());
   app.use(express.json({ limit: '6mb' }));

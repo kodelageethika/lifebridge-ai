@@ -1,8 +1,18 @@
 export function normalizeApiBase(rawBase: string | undefined): string {
   const trimmed = (rawBase || '').trim().replace(/\/+$/, '');
-  if (!trimmed) return '';
+  if (!trimmed || trimmed === 'undefined' || trimmed === 'null') return '';
   // Guard against VITE_API_BASE_URL accidentally including /api, /api/v1, or /api/vl suffixes
-  return trimmed.replace(/\/api(?:\/v[1l])?$/i, '');
+  const cleaned = trimmed.replace(/\/api(?:\/v[1l])?$/i, '');
+  // Never target a static GitHub Pages host as an API backend
+  try {
+    const parsed = new URL(cleaned);
+    if (parsed.hostname.endsWith('.github.io')) {
+      return '';
+    }
+  } catch {
+    // Allow relative or non-URL strings to fall through cleanly
+  }
+  return cleaned;
 }
 
 export function buildApiUrl(path: string, rawBase: string | undefined = import.meta.env.VITE_API_BASE_URL): string {
@@ -57,6 +67,19 @@ export async function apiRequest<T>(
     headers['Authorization'] = `Bearer ${token}`;
   }
 
+  const apiBase = normalizeApiBase(import.meta.env.VITE_API_BASE_URL);
+  if (
+    !apiBase &&
+    typeof window !== 'undefined' &&
+    window.location?.hostname?.endsWith('.github.io')
+  ) {
+    throw new ApiError(
+      405,
+      'STATIC_HOST_MISSING_API_BASE_URL',
+      'GitHub Pages cannot execute backend API requests without VITE_API_BASE_URL pointing to your deployed backend or Vercel full-stack URL.'
+    );
+  }
+
   const targetUrl = buildApiUrl(path);
   const method = options.method || 'GET';
 
@@ -73,7 +96,7 @@ export async function apiRequest<T>(
     throw new ApiError(
       405,
       'METHOD_NOT_ALLOWED_STATIC_HOST',
-      `HTTP 405 Method Not Allowed for ${method} ${targetUrl}. Static hosts (such as GitHub Pages) reject API POST/PATCH requests when VITE_API_BASE_URL is unset or points to the frontend origin.`
+      `HTTP 405 Method Not Allowed for ${method} ${targetUrl}. Ensure the Express backend is running or VITE_API_BASE_URL / Vercel /api rewrites are active.`
     );
   }
 

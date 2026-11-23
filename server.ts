@@ -10,6 +10,8 @@ async function startServer() {
   validateProductionEnv();
   const app = createApiApp();
 
+  const apiOnlyMode = process.argv.includes('--api-only') || process.env.BACKEND_ONLY === 'true';
+
   if (env.IS_PROD) {
     const distPath = path.resolve(process.cwd(), 'dist');
     if (fs.existsSync(distPath)) {
@@ -18,7 +20,7 @@ async function startServer() {
         res.sendFile(path.join(distPath, 'index.html'));
       });
     }
-  } else {
+  } else if (!apiOnlyMode) {
     const { createServer: createViteServer } = await import('vite');
     const vite = await createViteServer({
       server: {
