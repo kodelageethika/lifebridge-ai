@@ -149,7 +149,19 @@ export function enforceCsrfProtection(allowedOrigins: string[]) {
     const requestedWith = req.headers['x-requested-with'];
 
     if (typeof origin === 'string' && origin.trim()) {
+      const forwardedHost = (req.headers['x-forwarded-host'] as string | undefined)?.split(',')[0]?.trim();
+      const requestHost = forwardedHost || req.headers.host;
+      let isSameHostOrigin = false;
+      if (requestHost) {
+        try {
+          isSameHostOrigin = new URL(origin).host === requestHost;
+        } catch {
+          isSameHostOrigin = false;
+        }
+      }
+
       const isAllowedOrigin =
+        isSameHostOrigin ||
         allowedOrigins.includes(origin) ||
         origin.startsWith('http://localhost:') ||
         origin.startsWith('http://127.0.0.1:') ||

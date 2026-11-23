@@ -9,7 +9,8 @@ process.env.NODE_ENV = 'test';
 process.env.DB_PATH = tempDbPath;
 
 const { createApiApp } = await import('../server/src/app.js');
-const { readDb, mutateDb, resetDbCache, setDbDriverForTest } = await import('../server/src/db/database.js');
+const { default: vercelApiHandler } = await import('../api/index.js');
+const { readDb, mutateDb, resetDbCache, setDbDriverForTest, getDbDriver } = await import('../server/src/db/database.js');
 const {
   setAiClientFactoryForTest,
   setAiRetryConfigForTest,
@@ -992,4 +993,66 @@ describe('LifeBridge AI — Gemini AI, SMTP, Migration, Database Failure & Secur
       expect(pledgeRes.body.success).toBe(true);
     });
   });
+
+  describe('7. Vercel Single-Project Deployment & Serverless Function Verification', () => {
+    it('Exports a functional Express app from root api/index.ts handling /api/health and API routes cleanly', async () => {
+      const healthRes = await request(vercelApiHandler).get('/api/health');
+      expect(healthRes.status).toBe(200);
+      expect(healthRes.body.success).toBe(true);
+      expect(healthRes.body.data.status).toBe('healthy');
+      expect(healthRes.body.data.database.healthy).toBe(true);
+
+      const publicRes = await request(vercelApiHandler).get('/api/v1/bootstrap/public');
+      expect(publicRes.status).toBe(200);
+      expect(publicRes.body.success).toBe(true);
+    });
+
+    it('Allows single-project Vercel same-host Origin in CORS and CSRF while rejecting external Origins (403)', async () => {
+      const vercelLogin = await request(vercelApiHandler)
+        .post('/api/v1/auth/login')
+        .set('Host', 'lifebridge-ai.vercel.app')
+        .set('X-Forwarded-Proto', 'https')
+        .set('Origin', 'https://lifebridge-ai.vercel.app')
+        .send({ email: 'coordinator@lifebridge.demo', password: 'LifeBridge@2026' });
+
+      expect(vercelLogin.status).toBe(200);
+      expect(vercelLogin.headers['access-control-allow-origin']).toBe('https://lifebridge-ai.vercel.app');
+      const cookies = (vercelLogin.headers['set-cookie'] as unknown as string[]) || [];
+      expect(cookies.length).toBeGreaterThan(0);
+
+      // Same-host Vercel Origin cookie mutation succeeds cleanly
+      const sameHostMutation = await request(vercelApiHandler)
+        .post('/api/v1/notifications/read-all')
+        .set('Host', 'lifebridge-ai.vercel.app')
+        .set('Origin', 'https://lifebridge-ai.vercel.app')
+        .set('Cookie', cookies);
+      expect(sameHostMutation.status).toBe(200);
+
+      // Untrusted third-party Origin rejected cleanly
+      const evilOrigin = await request(vercelApiHandler)
+        .get('/api/v1/bootstrap/public')
+        .set('Host', 'lifebridge-ai.vercel.app')
+        .set('Origin', 'https://untrusted-site.example');
+      expect(evilOrigin.status).toBe(403);
+    });
+
+    it('Enforces PostgreSQL driver on Vercel runtime (disallows local JSON fallback)', () => {
+      const prevVercel = process.env.VERCEL;
+      try {
+        setDbDriverForTest(null);
+        process.env.VERCEL = '1';
+        process.env.DB_DRIVER = 'json';
+        expect(getDbDriver()).toBe('postgres');
+      } finally {
+        if (prevVercel === undefined) {
+          delete process.env.VERCEL;
+        } else {
+          process.env.VERCEL = prevVercel;
+        }
+        delete process.env.DB_DRIVER;
+        setDbDriverForTest('json');
+      }
+    });
+  });
 });
+

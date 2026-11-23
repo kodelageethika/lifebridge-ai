@@ -23,6 +23,12 @@ import { buildSeedDatabase } from './seed.ts';
 
 type PrismaTx = Prisma.TransactionClient | PrismaClient;
 
+const globalForDb = globalThis as unknown as {
+  __lifebridgePgPool?: Pool;
+  __lifebridgePrisma?: PrismaClient;
+  __lifebridgeDbUrl?: string;
+};
+
 export class PostgresPrismaRepository implements DatabaseRepository {
   public readonly driver = 'postgres' as const;
   private prisma: PrismaClient | null = null;
@@ -40,23 +46,41 @@ export class PostgresPrismaRepository implements DatabaseRepository {
 
   private getClients(): { prisma: PrismaClient; pool: Pool } {
     const url = this.ensureConnectionString();
+    if (globalForDb.__lifebridgeDbUrl && globalForDb.__lifebridgeDbUrl !== url) {
+      void this.disconnect();
+    }
+
     if (!this.pool) {
-      this.pool = new Pool({
-        connectionString: url,
-        max: env.DB_POOL_MAX,
-        idleTimeoutMillis: 30000,
-        connectionTimeoutMillis: 5000,
-      });
-      this.pool.on('error', (err) => {
-        console.warn('[PostgreSQL Pool Idle Error]', err instanceof Error ? err.message : 'Pool error');
-      });
+      if (globalForDb.__lifebridgePgPool && globalForDb.__lifebridgeDbUrl === url) {
+        this.pool = globalForDb.__lifebridgePgPool;
+      } else {
+        this.pool = new Pool({
+          connectionString: url,
+          max: env.DB_POOL_MAX,
+          idleTimeoutMillis: env.IS_VERCEL ? 10000 : 30000,
+          connectionTimeoutMillis: 5000,
+        });
+        this.pool.on('error', (err) => {
+          console.warn('[PostgreSQL Pool Idle Error]', err instanceof Error ? err.message : 'Pool error');
+        });
+        globalForDb.__lifebridgePgPool = this.pool;
+        globalForDb.__lifebridgeDbUrl = url;
+      }
     }
+
     if (!this.prisma) {
-      this.prisma = new PrismaClient({
-        datasources: { db: { url } },
-        log: env.IS_PROD ? ['error'] : ['warn', 'error'],
-      });
+      if (globalForDb.__lifebridgePrisma && globalForDb.__lifebridgeDbUrl === url) {
+        this.prisma = globalForDb.__lifebridgePrisma;
+      } else {
+        this.prisma = new PrismaClient({
+          datasources: { db: { url } },
+          log: env.IS_PROD ? ['error'] : ['warn', 'error'],
+        });
+        globalForDb.__lifebridgePrisma = this.prisma;
+        globalForDb.__lifebridgeDbUrl = url;
+      }
     }
+
     return { prisma: this.prisma, pool: this.pool };
   }
 
@@ -1167,5 +1191,8 @@ export class PostgresPrismaRepository implements DatabaseRepository {
       await this.pool.end();
       this.pool = null;
     }
+    globalForDb.__lifebridgePrisma = undefined;
+    globalForDb.__lifebridgePgPool = undefined;
+    globalForDb.__lifebridgeDbUrl = undefined;
   }
 }

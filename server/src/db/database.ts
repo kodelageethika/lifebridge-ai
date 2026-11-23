@@ -15,6 +15,9 @@ export function setDbDriverForTest(driver: DbDriverType | null): void {
 
 export function getDbDriver(): DbDriverType {
   if (forcedDriverForTest) return forcedDriverForTest;
+  if (process.env.VERCEL === '1' || process.env.NODE_ENV === 'production') {
+    return 'postgres';
+  }
   const raw = (process.env.DB_DRIVER || '').trim().toLowerCase();
   if (raw === 'postgres' || raw === 'postgresql') return 'postgres';
   if (raw === 'json') return 'json';

@@ -27,21 +27,36 @@ export function createApiApp(): Express {
   );
 
   app.use(
-    cors({
-      origin(origin, callback) {
-        if (!origin) return callback(null, true);
-        if (
-          env.CORS_ORIGINS.includes(origin) ||
-          origin.startsWith('http://localhost:') ||
-          origin.startsWith('http://127.0.0.1:') ||
-          origin.endsWith('.run.app') ||
-          origin.endsWith('.googleusercontent.com')
-        ) {
-          return callback(null, true);
+    cors((req, callback) => {
+      const origin = req.headers.origin;
+      if (!origin) {
+        return callback(null, { origin: true, credentials: true });
+      }
+      const forwardedHost = (req.headers['x-forwarded-host'] as string | undefined)?.split(',')[0]?.trim();
+      const requestHost = forwardedHost || req.headers.host;
+      let isSameHostOrigin = false;
+      if (requestHost) {
+        try {
+          isSameHostOrigin = new URL(origin).host === requestHost;
+        } catch {
+          isSameHostOrigin = false;
         }
-        return callback(new ForbiddenError(`Origin ${origin} not allowed by CORS policy`), false);
-      },
-      credentials: true,
+      }
+
+      if (
+        isSameHostOrigin ||
+        env.CORS_ORIGINS.includes(origin) ||
+        origin.startsWith('http://localhost:') ||
+        origin.startsWith('http://127.0.0.1:') ||
+        origin.endsWith('.run.app') ||
+        origin.endsWith('.googleusercontent.com')
+      ) {
+        return callback(null, { origin: true, credentials: true });
+      }
+
+      return callback(new ForbiddenError(`Origin ${origin} not allowed by CORS policy`), {
+        origin: false,
+      });
     })
   );
 
@@ -83,6 +98,8 @@ export function createApiApp(): Express {
       status: dbHealth.healthy ? 'healthy' : 'degraded',
       service: 'LifeBridge AI API',
       version: 'v1',
+      environment: env.NODE_ENV,
+      platform: process.env.VERCEL === '1' ? 'vercel-serverless' : 'node',
       database: dbHealth,
       ai: {
         configured: aiConfigured,

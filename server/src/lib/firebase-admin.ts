@@ -1,14 +1,13 @@
-import { initializeApp, getApps, getApp } from 'firebase-admin/app';
+import { getApp, getApps, initializeApp } from 'firebase-admin/app';
 import { getAuth } from 'firebase-admin/auth';
 import firebaseConfig from '../../../firebase-applet-config.json' with { type: 'json' };
 import { UnauthorizedError } from '../middleware/errorHandler.ts';
 
-const adminApp =
-  getApps().length > 0
-    ? getApp()
-    : initializeApp({
-        projectId: firebaseConfig.projectId,
-      });
+// Verifying Firebase ID tokens with verifyIdToken() needs no IAM or service account private key;
+// initializing with projectId works across AI Studio, Cloud Run, and Vercel serverless runtimes.
+const projectId = (process.env.FIREBASE_PROJECT_ID || firebaseConfig.projectId || '').trim();
+
+const adminApp = getApps().length > 0 ? getApp() : initializeApp({ projectId });
 
 export const adminAuth = getAuth(adminApp);
 

@@ -8,14 +8,14 @@ const runtimeFallbackSessionSecret = crypto.randomBytes(32).toString('hex');
 const runtimeFallbackAuditSecret = crypto.randomBytes(32).toString('hex');
 
 const rawDbDriver = (process.env.DB_DRIVER || '').trim().toLowerCase();
+const isVercelRuntime = process.env.VERCEL === '1' || Boolean(process.env.VERCEL_URL);
+const isProdRuntime = process.env.NODE_ENV === 'production';
 const resolvedDbDriver: 'json' | 'postgres' =
-  rawDbDriver === 'postgres' || rawDbDriver === 'postgresql'
+  isVercelRuntime || isProdRuntime
     ? 'postgres'
-    : rawDbDriver === 'json'
-      ? 'json'
-      : process.env.NODE_ENV === 'production' && Boolean(process.env.DATABASE_URL?.trim())
-        ? 'postgres'
-        : 'json';
+    : rawDbDriver === 'postgres' || rawDbDriver === 'postgresql'
+      ? 'postgres'
+      : 'json';
 
 const DEPRECATED_GEMINI_MODELS = new Set([
   'gemini-1.5-flash',
@@ -42,7 +42,17 @@ if (
   configuredOrigins.push('https://kodelageethika.github.io');
 }
 
-for (const externalUrl of [process.env.APP_URL, process.env.RENDER_EXTERNAL_URL]) {
+for (const externalUrl of [
+  process.env.APP_URL,
+  process.env.RENDER_EXTERNAL_URL,
+  process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL.replace(/^https?:\/\//, '')}` : undefined,
+  process.env.VERCEL_PROJECT_PRODUCTION_URL
+    ? `https://${process.env.VERCEL_PROJECT_PRODUCTION_URL.replace(/^https?:\/\//, '')}`
+    : undefined,
+  process.env.VERCEL_BRANCH_URL
+    ? `https://${process.env.VERCEL_BRANCH_URL.replace(/^https?:\/\//, '')}`
+    : undefined,
+]) {
   if (!externalUrl) continue;
   try {
     const origin = new URL(externalUrl).origin;
@@ -57,7 +67,8 @@ for (const externalUrl of [process.env.APP_URL, process.env.RENDER_EXTERNAL_URL]
 export const env = {
   PORT: Number(process.env.PORT || 3000),
   NODE_ENV: process.env.NODE_ENV || 'development',
-  IS_PROD: process.env.NODE_ENV === 'production',
+  IS_PROD: isProdRuntime,
+  IS_VERCEL: isVercelRuntime,
   CORS_ORIGINS: configuredOrigins,
   SESSION_SECRET: process.env.SESSION_SECRET || runtimeFallbackSessionSecret,
   AUDIT_HMAC_SECRET:
@@ -70,7 +81,7 @@ export const env = {
   DB_DRIVER: resolvedDbDriver,
   DB_PATH: path.resolve(process.cwd(), process.env.DB_PATH || './server/data/lifebridge-db.json'),
   DATABASE_URL: (process.env.DATABASE_URL || '').trim(),
-  DB_POOL_MAX: Math.max(1, Number(process.env.DB_POOL_MAX || 10)),
+  DB_POOL_MAX: Math.max(1, Number(process.env.DB_POOL_MAX || (isVercelRuntime ? 3 : 10))),
   AUTO_SEED_EMPTY_DB: process.env.AUTO_SEED_EMPTY_DB === 'true',
 
   // Gemini AI configuration (server-side only; never exposed to client bundles)
